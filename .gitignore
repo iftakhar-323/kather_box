@@ -1,0 +1,13 @@
+# Backend
+backend/katherbox
+backend/katherbox.db
+backend/*.exe
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS/Editor
+.DS_Store
+*.log
+
