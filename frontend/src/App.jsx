@@ -67,6 +67,7 @@ const STATIC_SLUGS = ["about", "contact", "faq", "privacy", "terms", "shipping",
 
 function Footer() {
   const year = new Date().getFullYear();
+  const { t } = useTranslation();
   return (
     <footer className="footer" role="contentinfo">
       <div className="footer-inner">
@@ -75,37 +76,34 @@ function Footer() {
             <span className="leaf">🌿</span>
             <span>KatherBox</span>
           </span>
-          <p className="footer-tagline">
-            Hand-curated indoor plants, subscriptions, expert consultations
-            and corporate gifting — grown with love in Dhaka.
-          </p>
+          <p className="footer-tagline">{t("brand.tagline")}</p>
         </div>
 
         <div className="footer-col">
-          <h4>Shop</h4>
+          <h4>{t("footer.shop")}</h4>
           <ul>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("home"); }}>All plants</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("subscriptions"); }}>Subscription boxes</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("consultations"); }}>Expert consultations</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("corporate"); }}>Corporate gifting</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("home"); }}>{t("nav.subscriptions")} — All plants</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("subscriptions"); }}>{t("nav.subscriptions")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("consultations"); }}>{t("nav.consultations")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("corporate"); }}>{t("nav.corpPortal")}</a></li>
           </ul>
         </div>
 
         <div className="footer-col">
-          <h4>Support</h4>
+          <h4>{t("footer.support")}</h4>
           <ul>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("about"); }}>About us</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("contact"); }}>Contact</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("faq"); }}>FAQ</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("shipping"); }}>Shipping policy</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("refund"); }}>Refund policy</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("privacy"); }}>Privacy policy</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("terms"); }}>Terms & conditions</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("about"); }}>{t("footer.aboutUs")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("contact"); }}>{t("footer.contactUs")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("faq"); }}>{t("footer.faq")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("shipping"); }}>{t("footer.shipping")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("refund"); }}>{t("footer.refund")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("privacy"); }}>{t("footer.privacy")}</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("terms"); }}>{t("footer.terms")}</a></li>
           </ul>
         </div>
 
         <div className="footer-col">
-          <h4>Get in touch</h4>
+          <h4>{t("footer.contact")}</h4>
           <div className="footer-contact">
             <div className="row">📧 hello@katherbox.com</div>
             <div className="row">📞 +880 1700 000 000</div>
@@ -115,7 +113,7 @@ function Footer() {
       </div>
 
       <div className="footer-bottom">
-        <span>© {year} KatherBox. All rights reserved.</span>
+        <span>© {year} KatherBox. {t("footer.rights")}.</span>
         <div className="socials">
           <a href="#" aria-label="Facebook">f</a>
           <a href="#" aria-label="Instagram">◎</a>

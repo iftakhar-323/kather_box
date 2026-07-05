@@ -8,6 +8,7 @@ import {
 import { checkout } from "../api/orders";
 import { getMe } from "../api/auth";
 import { applyCoupon } from "../api/coupons";
+import { useTranslation } from "../i18n/I18nProvider";
 
 const FREE_SHIPPING_THRESHOLD = 1500; // ৳
 const GIFT_WRAP_FEE = 50;
@@ -31,14 +32,15 @@ function fmtBDT(n) {
   });
 }
 
-function stockBadge(stock) {
-  if (stock === 0) return { tone: "out", text: "Out of stock", icon: "🚫" };
-  if (stock <= 3) return { tone: "low", text: `Only ${stock} left`, icon: "⚠️" };
-  return { tone: "ok", text: "In stock", icon: "✓" };
+function stockBadge(stock, t) {
+  if (stock === 0) return { tone: "out", text: t("cart.stockOut"), icon: "🚫" };
+  if (stock <= 3) return { tone: "low", text: t("cart.stockLow", { count: stock }), icon: "⚠️" };
+  return { tone: "ok", text: t("cart.stockOk"), icon: "✓" };
 }
 
 export default function Cart({ onOrderPlaced }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -76,8 +78,8 @@ export default function Cart({ onOrderPlaced }) {
         console.error(err);
         setError(
           err.response?.status === 401
-            ? "Please log in to see your cart."
-            : "Failed to load cart."
+            ? t("cart.loginPromptBody")
+            : t("cart.loadFailed")
         );
       })
       .finally(() => setLoading(false));
@@ -120,13 +122,13 @@ export default function Cart({ onOrderPlaced }) {
     return (
       <div className="empty" style={{ marginTop: 64 }}>
         <div className="emoji">🔒</div>
-        <h3>Please log in</h3>
-        <p>Sign in to view items in your cart.</p>
+        <h3>{t("cart.loginPromptTitle")}</h3>
+        <p>{t("cart.loginPromptBody")}</p>
         <button
           className="btn btn-primary mt-16"
           onClick={() => window.__katherboxSetView?.("login")}
         >
-          Log in
+          {t("cart.loginPromptAction")}
         </button>
       </div>
     );
@@ -135,7 +137,7 @@ export default function Cart({ onOrderPlaced }) {
     return (
       <div className="empty">
         <div className="emoji">🛒</div>
-        <h3>Loading your cart…</h3>
+        <h3>{t("cart.loading")}</h3>
       </div>
     );
   }
@@ -152,7 +154,7 @@ export default function Cart({ onOrderPlaced }) {
   const handleQty = async (item, next) => {
     if (next < 1) return;
     if (item.product.stock === 0) {
-      showToast("err", `${item.product.name} is out of stock.`);
+      showToast("err", t("cart.outOfStock", { name: item.product.name }));
       return;
     }
     try {
@@ -160,7 +162,7 @@ export default function Cart({ onOrderPlaced }) {
       await updateCartItem(item.ID, next);
       load();
     } catch (err) {
-      const msg = err.response?.data?.error || "Could not update quantity.";
+      const msg = err.response?.data?.error || t("cart.updateQtyFailed");
       showToast("err", msg);
     } finally {
       setBusyId(null);
@@ -169,19 +171,19 @@ export default function Cart({ onOrderPlaced }) {
 
   const handleRemove = (item) => {
     setConfirm({
-      title: "Remove item?",
-      body: `${item.product.name} will be returned to stock and removed from your cart.`,
+      title: t("cart.confirmRemoveTitle"),
+      body: t("cart.confirmRemoveBody", { name: item.product.name }),
       danger: true,
-      confirmText: "Remove",
+      confirmText: t("cart.removeItem"),
       onConfirm: async () => {
         setConfirm(null);
         try {
           setBusyId(item.ID);
           await removeCartItem(item.ID);
           load();
-          showToast("ok", "Item removed");
+          showToast("ok", t("cart.itemRemoved"));
         } catch (err) {
-          showToast("err", "Could not remove item.");
+          showToast("err", t("cart.removeFailed"));
         } finally {
           setBusyId(null);
         }
@@ -198,7 +200,7 @@ export default function Cart({ onOrderPlaced }) {
     try {
       const { data } = await applyCoupon(code, subtotal);
       setCouponInfo(data);
-      showToast("ok", `Coupon ${code} applied — saved ${fmtBDT(data.discount_amount)}`);
+      showToast("ok", t("cart.couponApplied", { code, amount: fmtBDT(data.discount_amount) }));
     } catch (err) {
       setCouponError(err?.response?.data?.error || err.message);
     } finally {
@@ -210,16 +212,24 @@ export default function Cart({ onOrderPlaced }) {
     setCouponInfo(null);
     setCouponCode("");
     setCouponError("");
-    showToast("ok", "Coupon removed");
+    showToast("ok", t("cart.couponRemoved"));
   };
 
   const handleCheckout = () => {
     if (items.length === 0) return;
+    const pointsNote = pointsDiscount
+      ? t("cart.placeOrderPointsNote", { count: pointsDiscount })
+      : "";
+    const couponNote = couponDiscount
+      ? t("cart.placeOrderCouponNote", { code: couponCode })
+      : "";
     setConfirm({
-      title: "Confirm order",
-      body: `Place order for ${fmtBDT(total)}? ${pointsDiscount ? `You'll redeem ${pointsDiscount} green points. ` : ""}${couponDiscount ? `Coupon ${couponCode} applied. ` : ""}`,
+      title: t("cart.confirmTitle"),
+      body: t("cart.placeOrderConfirm", { total: fmtBDT(total), pointsNote, couponNote }),
       danger: false,
-      confirmText: checkingOut ? "Placing…" : `Place order — ${fmtBDT(total)}`,
+      confirmText: checkingOut
+        ? t("cart.checkoutPlacing")
+        : t("cart.checkoutConfirm", { total: fmtBDT(total) }),
       onConfirm: async () => {
         setConfirm(null);
         try {
@@ -232,9 +242,9 @@ export default function Cart({ onOrderPlaced }) {
           setOrder(res.data);
           getMe().then((r) => setUserPoints(r.data.points || 0)).catch(() => {});
           load();
-          showToast("ok", `Order #${res.data.order.ID} placed!`);
+          showToast("ok", t("cart.orderPlaced", { id: res.data.order.ID }));
         } catch (err) {
-          const msg = err.response?.data?.error || "Checkout failed.";
+          const msg = err.response?.data?.error || t("cart.checkoutFailed");
           setError(msg);
           showToast("err", msg);
         } finally {
@@ -255,22 +265,22 @@ export default function Cart({ onOrderPlaced }) {
         style={{ maxWidth: 520, margin: "32px auto", textAlign: "center" }}
       >
         <div style={{ fontSize: 64 }}>🎉</div>
-        <h2 style={{ color: "var(--leaf-700)" }}>Order placed!</h2>
+        <h2 style={{ color: "var(--leaf-700)" }}>{t("cart.placed")}</h2>
         <p className="muted mt-8">
           Order <strong>#{order.order.ID}</strong>
         </p>
 
         <div className="cart-summary mt-16" style={{ textAlign: "left" }}>
-          <div className="cart-summary-row"><span>Subtotal</span><strong>{fmtBDT(sub)}</strong></div>
+          <div className="cart-summary-row"><span>{t("cart.subtotal")}</span><strong>{fmtBDT(sub)}</strong></div>
           {disc > 0 && (
-            <div className="cart-summary-row cart-savings"><span>You saved</span><strong>−{fmtBDT(disc)}</strong></div>
+            <div className="cart-summary-row cart-savings"><span>{t("cart.youSaved")}</span><strong>−{fmtBDT(disc)}</strong></div>
           )}
-          <div className="cart-summary-row cart-summary-total"><span>Total paid</span><strong>{fmtBDT(order.order.total_price)}</strong></div>
+          <div className="cart-summary-row cart-summary-total"><span>{t("cart.totalPaid")}</span><strong>{fmtBDT(order.order.total_price)}</strong></div>
         </div>
 
         {earn > 0 && (
           <div className="cart-points-earned mt-12">
-            🌿 You earned <strong>{earn} green points</strong>
+            <span dangerouslySetInnerHTML={{ __html: t("cart.earnedPoints", { count: earn }) }} />
           </div>
         )}
 
@@ -282,13 +292,13 @@ export default function Cart({ onOrderPlaced }) {
               if (onOrderPlaced) onOrderPlaced();
             }}
           >
-            View my orders
+            {t("cart.viewOrders")}
           </button>
           <button
             className="btn btn-secondary"
             onClick={() => setOrder(null)}
           >
-            Continue shopping
+            {t("cart.continueShopping")}
           </button>
         </div>
       </div>
@@ -300,13 +310,13 @@ export default function Cart({ onOrderPlaced }) {
     return (
       <div className="empty" style={{ marginTop: 64 }}>
         <div className="emoji">🪴</div>
-        <h3>Your cart is empty</h3>
-        <p>Add some plants or decor to get started.</p>
+        <h3>{t("cart.title")}</h3>
+        <p>{t("cart.emptyBody")}</p>
         <button
           className="btn btn-primary mt-16"
           onClick={() => window.__katherboxSetView?.("home")}
         >
-          Browse the shop
+          {t("cart.emptyAction")}
         </button>
       </div>
     );
@@ -321,28 +331,30 @@ export default function Cart({ onOrderPlaced }) {
       {/* Header */}
       <div className="cart-header">
         <div>
-          <h2>Your Cart</h2>
+          <h2>{t("cart.headerTitle")}</h2>
           <div className="cart-subhead">
-            {items.length} {items.length === 1 ? "item" : "items"} • {fmtBDT(subtotal)}
+            {t("cart.subhead", {
+              count: items.length,
+              itemOrItems: t(items.length === 1 ? "cart.subheadItem" : "cart.subheadItems"),
+              total: fmtBDT(subtotal),
+            })}
           </div>
         </div>
         <button
           className="btn btn-ghost btn-sm"
           onClick={() => setCollapsed((v) => !v)}
-          title={collapsed ? "Expand items" : "Compact view"}
+          title={collapsed ? t("cart.expandItems") : t("cart.compactView")}
         >
-          {collapsed ? "Expand ▾" : "Compact ▴"}
+          {collapsed ? t("cart.expand") : t("cart.compact")}
         </button>
       </div>
 
       {/* Free-shipping progress */}
       <div className={`cart-freeship ${subtotal >= FREE_SHIPPING_THRESHOLD ? "is-met" : ""}`}>
         {subtotal >= FREE_SHIPPING_THRESHOLD ? (
-          <span>🎉 You unlocked <strong>free shipping!</strong></span>
+          <span dangerouslySetInnerHTML={{ __html: t("cart.freeShippingMet") }} />
         ) : (
-          <span>
-            🚚 Add <strong>{fmtBDT(remainingForFreeShipping)}</strong> more for free shipping.
-          </span>
+          <span dangerouslySetInnerHTML={{ __html: t("cart.freeShippingNote", { amount: fmtBDT(remainingForFreeShipping) }) }} />
         )}
         <div className="cart-freeship-bar">
           <div className="cart-freeship-fill" style={{ width: `${freeShipPct}%` }} />
@@ -353,7 +365,7 @@ export default function Cart({ onOrderPlaced }) {
       <div className="stack gap-12 cart-items">
         {items.map((item) => {
           const isBusy = busyId === item.ID;
-          const badge = stockBadge(item.product.stock);
+          const badge = stockBadge(item.product.stock, t);
           const lineTotal = item.product.price * item.quantity;
           return (
             <article
@@ -376,7 +388,7 @@ export default function Cart({ onOrderPlaced }) {
                   </span>
                 </div>
                 <div className="cart-item-price">
-                  {fmtBDT(item.product.price)} <span>each</span>
+                  {fmtBDT(item.product.price)} <span>{t("cart.each")}</span>
                 </div>
               </div>
 
@@ -429,18 +441,21 @@ export default function Cart({ onOrderPlaced }) {
                   <div className="cart-coupon-pill">
                     <strong>{couponCode}</strong>
                     <span>
-                      {couponInfo.discount_percent}% off
+                      {t("cart.couponPercentOff", { percent: couponInfo.discount_percent })}
                     </span>
                   </div>
-                  <div className="cart-coupon-save">
-                    You save <strong>{fmtBDT(couponInfo.discount_amount)}</strong>
-                  </div>
+                  <div
+                    className="cart-coupon-save"
+                    dangerouslySetInnerHTML={{
+                      __html: t("cart.couponYouSave", { amount: fmtBDT(couponInfo.discount_amount) }),
+                    }}
+                  />
                 </div>
                 <button
                   className="btn btn-secondary btn-xs"
                   onClick={handleRemoveCoupon}
                 >
-                  Remove
+                  {t("cart.removeItem")}
                 </button>
               </div>
             ) : (
@@ -448,7 +463,7 @@ export default function Cart({ onOrderPlaced }) {
                 <div className="cart-coupon-input">
                   <input
                     className="input"
-                    placeholder="Enter coupon code"
+                    placeholder={t("cart.couponInputPlaceholder")}
                     value={couponCode}
                     onChange={(e) =>
                       setCouponCode(e.target.value.toUpperCase())
@@ -462,15 +477,16 @@ export default function Cart({ onOrderPlaced }) {
                     disabled={couponBusy || !couponCode.trim()}
                     className="btn btn-primary btn-sm"
                   >
-                    {couponBusy ? "Checking…" : "Apply"}
+                    {couponBusy ? t("cart.applying") : t("cart.applyCoupon")}
                   </button>
                 </div>
                 {couponError && (
                   <div className="cart-err">{couponError}</div>
                 )}
-                <div className="cart-hint">
-                  💡 Try <code>WELCOME10</code>, <code>GREEN20</code>, or <code>PLANT15</code> for demo coupons.
-                </div>
+                <div
+                  className="cart-hint"
+                  dangerouslySetInnerHTML={{ __html: t("cart.couponHint") }}
+                />
               </>
             )}
           </div>
@@ -478,10 +494,13 @@ export default function Cart({ onOrderPlaced }) {
           {/* Green Points card */}
           <div className="cart-card">
             <div className="cart-card-head">
-              <span className="cart-card-title">🌿 Green Points</span>
-              <span className="cart-card-pill">
-                Balance: <strong>{userPoints}</strong> pts
-              </span>
+              <span className="cart-card-title">{t("cart.greenPoints")}</span>
+              <span
+                className="cart-card-pill"
+                dangerouslySetInnerHTML={{
+                  __html: t("cart.pointsBalance", { count: userPoints }),
+                }}
+              />
             </div>
             {userPoints > 0 ? (
               <>
@@ -490,7 +509,7 @@ export default function Cart({ onOrderPlaced }) {
                   type="number"
                   min="0"
                   max={Math.min(userPoints, Math.max(0, subtotal - couponDiscount))}
-                  placeholder={`Redeem points (1 pt = ৳1)`}
+                  placeholder={t("cart.redeemPlaceholder")}
                   value={pointsToUse || ""}
                   onChange={(e) =>
                     setPointsToUse(
@@ -515,19 +534,23 @@ export default function Cart({ onOrderPlaced }) {
                       )
                     }
                   >
-                    Use max
+                    {t("cart.useMax")}
                   </button>
                 </div>
                 {pointsDiscount > 0 && (
-                  <div className="cart-saved">
-                    Applying <strong>{pointsDiscount}</strong> pts = {fmtBDT(pointsDiscount)} off
-                  </div>
+                  <div
+                    className="cart-saved"
+                    dangerouslySetInnerHTML={{
+                      __html: t("cart.applyingPoints", {
+                        count: pointsDiscount,
+                        amount: fmtBDT(pointsDiscount),
+                      }),
+                    }}
+                  />
                 )}
               </>
             ) : (
-              <div className="cart-hint">
-                Place orders to earn green points. 1 pt earned per ৳10 spent.
-              </div>
+              <div className="cart-hint">{t("cart.redeemPointsHint")}</div>
             )}
           </div>
 
@@ -541,9 +564,9 @@ export default function Cart({ onOrderPlaced }) {
               />
               <span className="cart-addon-icon">🎀</span>
               <span className="cart-addon-body">
-                <strong>Gift wrap</strong>
+                <strong>{t("cart.giftWrap")}</strong>
                 <span className="cart-addon-sub">
-                  Hand-wrapped with jute ribbon
+                  {t("cart.giftWrapSub")}
                 </span>
               </span>
               <span className="cart-addon-price">+{fmtBDT(GIFT_WRAP_FEE)}</span>
@@ -553,39 +576,44 @@ export default function Cart({ onOrderPlaced }) {
 
         {/* Right column: order summary */}
         <aside className="cart-summary-card">
-          <h3 className="cart-summary-title">Order summary</h3>
+          <h3 className="cart-summary-title">{t("cart.orderSummary")}</h3>
           <div className="cart-summary">
             <div className="cart-summary-row">
-              <span>Subtotal ({items.length} {items.length === 1 ? "item" : "items"})</span>
+              <span>
+                {t("cart.subtotalCount", {
+                  count: items.length,
+                  itemOrItems: t(items.length === 1 ? "cart.subheadItem" : "cart.subheadItems"),
+                })}
+              </span>
               <span>{fmtBDT(subtotal)}</span>
             </div>
 
             {couponDiscount > 0 && (
               <div className="cart-summary-row cart-savings">
-                <span>Coupon ({couponCode})</span>
+                <span>{t("cart.couponInSummary", { code: couponCode })}</span>
                 <span>−{fmtBDT(couponDiscount)}</span>
               </div>
             )}
 
             {pointsDiscount > 0 && (
               <div className="cart-summary-row cart-savings">
-                <span>Green points</span>
+                <span>{t("cart.greenPointsInSummary")}</span>
                 <span>−{fmtBDT(pointsDiscount)}</span>
               </div>
             )}
 
             {giftWrap && (
               <div className="cart-summary-row">
-                <span>Gift wrap</span>
+                <span>{t("cart.giftWrapInSummary")}</span>
                 <span>+{fmtBDT(GIFT_WRAP_FEE)}</span>
               </div>
             )}
 
             <div className="cart-summary-row">
-              <span>Shipping</span>
+              <span>{t("cart.shipping")}</span>
               <span>
                 {shipping === 0 ? (
-                  <span className="cart-savings">FREE</span>
+                  <span className="cart-savings">{t("cart.shippingFree")}</span>
                 ) : (
                   fmtBDT(shipping)
                 )}
@@ -593,15 +621,18 @@ export default function Cart({ onOrderPlaced }) {
             </div>
 
             <div className="cart-summary-row cart-summary-total">
-              <span>Total to pay</span>
+              <span>{t("cart.totalPay")}</span>
               <strong>{fmtBDT(total)}</strong>
             </div>
           </div>
 
           {savings > 0 && (
-            <div className="cart-summary-savings">
-              🎉 You save <strong>{fmtBDT(savings)}</strong> on this order
-            </div>
+            <div
+              className="cart-summary-savings"
+              dangerouslySetInnerHTML={{
+                __html: `🎉 ${t("cart.youSaved")} <strong>${fmtBDT(savings)}</strong>`,
+              }}
+            />
           )}
 
           <button
@@ -609,19 +640,19 @@ export default function Cart({ onOrderPlaced }) {
             disabled={checkingOut}
             className="btn btn-primary btn-lg btn-block mt-12"
           >
-            {checkingOut ? "Placing order…" : `Checkout — ${fmtBDT(total)}`}
+            {checkingOut ? t("cart.placing") : t("cart.checkout", { total: fmtBDT(total) })}
           </button>
           <button
             onClick={() => window.__katherboxSetView?.("home")}
             className="btn btn-ghost btn-block mt-8"
           >
-            Continue shopping
+            {t("cart.continueShopping")}
           </button>
 
           <ul className="cart-trust">
-            <li>🔒 Secure checkout</li>
-            <li>📦 Door-to-door delivery</li>
-            <li>🌱 7-day plant guarantee</li>
+            <li>{t("cart.trust1")}</li>
+            <li>{t("cart.trust2")}</li>
+            <li>{t("cart.trust3")}</li>
           </ul>
         </aside>
       </div>
@@ -642,7 +673,7 @@ export default function Cart({ onOrderPlaced }) {
                 className="btn btn-ghost"
                 onClick={() => setConfirm(null)}
               >
-                Cancel
+                {t("actions.cancel")}
               </button>
               <button
                 className={"btn " + (confirm.danger ? "btn-danger" : "btn-primary")}
