@@ -10,4 +10,5 @@ frontend/dist/
 # OS/Editor
 .DS_Store
 *.log
+.puku/
 

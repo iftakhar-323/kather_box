@@ -1,77 +1,215 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Cart from "./pages/Cart";
+import Orders from "./pages/Orders";
+import Admin from "./pages/Admin";
+import ProductDetail from "./pages/ProductDetail";
+import Wishlist from "./pages/Wishlist";
+import Reminders from "./pages/Reminders";
+import Seasonal from "./pages/Seasonal";
+import Subscriptions from "./pages/Subscriptions";
+import Consultations from "./pages/Consultations";
+import Corporate from "./pages/Corporate";
+import Community from "./pages/Community";
+import EmailVerifyBanner from "./components/EmailVerifyBanner";
+import Notifications from "./components/Notifications";
 
-function Navbar({ setView }) {
+const NAV_ITEMS = [
+  { key: "home",          label: "Shop" },
+  { key: "wishlist",      label: "Wishlist" },
+  { key: "cart",          label: "Cart" },
+  { key: "orders",        label: "Orders" },
+  { key: "subscriptions", label: "Boxes 📦" },
+  { key: "consultations", label: "Experts 🌱" },
+  { key: "corporate",     label: "Corporate 🏢" },
+  { key: "community",     label: "Community" },
+  { key: "reminders",     label: "Care 🌿" },
+  { key: "seasonal",      label: "Seasonal" },
+];
+
+function Footer() {
+  const year = new Date().getFullYear();
+  return (
+    <footer className="footer" role="contentinfo">
+      <div className="footer-inner">
+        <div className="footer-brand">
+          <span className="brand-line">
+            <span className="leaf">🌿</span>
+            <span>KatherBox</span>
+          </span>
+          <p className="footer-tagline">
+            Hand-curated indoor plants, subscriptions, expert consultations
+            and corporate gifting — grown with love in Dhaka.
+          </p>
+        </div>
+
+        <div className="footer-col">
+          <h4>Shop</h4>
+          <ul>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("home"); }}>All plants</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("subscriptions"); }}>Subscription boxes</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("consultations"); }}>Expert consultations</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("corporate"); }}>Corporate gifting</a></li>
+          </ul>
+        </div>
+
+        <div className="footer-col">
+          <h4>Support</h4>
+          <div className="footer-contact">
+            <div className="row">📧 hello@katherbox.com</div>
+            <div className="row">📞 +880 1700 000 000</div>
+            <div className="row">📍 House 12, Road 7, Dhanmondi, Dhaka</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="footer-bottom">
+        <span>© {year} KatherBox. All rights reserved.</span>
+        <div className="socials">
+          <a href="#" aria-label="Facebook">f</a>
+          <a href="#" aria-label="Instagram">◎</a>
+          <a href="#" aria-label="Twitter">𝕏</a>
+          <a href="#" aria-label="YouTube">▶</a>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function Navbar({ view, setView }) {
   const { user, logout } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   return (
-    <div style={navStyles.bar}>
-      <span style={navStyles.logo} onClick={() => setView("home")}>
-        KatherBox 🌿
-      </span>
-      <div>
+    <header className="navbar">
+      <div className="nav-inner">
+        <span className="nav-brand" onClick={() => setView("home")}>
+          <span className="leaf">🌿</span>
+          <span>KatherBox</span>
+        </span>
+
+        {user && (
+          <nav className="nav-links" aria-label="Primary">
+            {NAV_ITEMS.map((it) => (
+              <button
+                key={it.key}
+                onClick={() => setView(it.key)}
+                className={
+                  "nav-link" +
+                  (view === it.key ||
+                  (it.key === "home" && view.startsWith("product-"))
+                    ? " is-active"
+                    : "")
+                }
+              >
+                {it.label}
+              </button>
+            ))}
+            {isAdmin && (
+              <button
+                onClick={() => setView("admin")}
+                className={
+                  "nav-link" + (view === "admin" ? " is-active" : "")
+                }
+                style={{ color: "var(--rose)" }}
+              >
+                Admin
+              </button>
+            )}
+          </nav>
+        )}
+
+        <span className="nav-spacer" />
+
         {user ? (
           <>
-            <span style={{ marginRight: "12px" }}>Hi, {user.name}</span>
-            <button onClick={logout} style={navStyles.button}>
+            <span className="nav-user">
+              <span className="avatar">
+                {(user.name || "?").trim().charAt(0).toUpperCase()}
+              </span>
+              <span>Hi, {user.name}</span>
+              {isAdmin && <span className="role-badge">ADMIN</span>}
+            </span>
+            <button onClick={logout} className="btn btn-secondary btn-sm">
               Logout
             </button>
           </>
         ) : (
-          <button onClick={() => setView("login")} style={navStyles.button}>
+          <button onClick={() => setView("login")} className="btn btn-primary btn-sm">
             Login
           </button>
         )}
       </div>
-    </div>
+    </header>
   );
 }
 
 function MainApp() {
+  const { user } = useAuth();
   const [view, setView] = useState("home");
 
+  // expose setView globally so deeply nested components (e.g. ProductCard)
+  // can navigate without prop-drilling through the entire tree.
+  useEffect(() => {
+    window.__katherboxSetView = setView;
+    return () => {
+      if (window.__katherboxSetView === setView) {
+        delete window.__katherboxSetView;
+      }
+    };
+  }, []);
+
   return (
-    <div>
-      <Navbar setView={setView} />
-      {view === "home" && <Home />}
-      {view === "login" && (
-        <Login onSwitch={() => setView("register")} onSuccess={() => setView("home")} />
-      )}
-      {view === "register" && (
-        <Register onSwitch={() => setView("login")} onSuccess={() => setView("home")} />
-      )}
+    <div className="app-shell">
+      <Navbar view={view} setView={setView} />
+      {user && <EmailVerifyBanner user={user} />}
+
+      <main className="page">
+        {view === "home" && <Home />}
+        {view === "login" && (
+          <Login
+            onSwitch={() => setView("register")}
+            onSuccess={() => setView("home")}
+          />
+        )}
+        {view === "register" && (
+          <Register
+            onSwitch={() => setView("login")}
+            onSuccess={() => setView("home")}
+          />
+        )}
+        {view === "cart" && <Cart onOrderPlaced={() => setView("orders")} />}
+        {view === "orders" && <Orders />}
+        {view === "admin" && <Admin />}
+        {view === "wishlist" && <Wishlist />}
+        {view === "reminders" && <Reminders />}
+        {view === "seasonal" && <Seasonal />}
+        {view === "subscriptions" && <Subscriptions />}
+        {view === "consultations" && <Consultations />}
+        {view === "corporate" && <Corporate />}
+        {view === "community" && <Community />}
+        {view.startsWith("product-") && (
+          <ProductDetail
+            productId={Number(view.replace("product-", ""))}
+            onBack={() => setView("home")}
+          />
+        )}
+      </main>
+
+      {user && <Notifications />}
+
+      <Footer />
     </div>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <AuthProvider>
       <MainApp />
     </AuthProvider>
   );
 }
-
-export default App;
-
-const navStyles = {
-  bar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "12px 24px",
-    borderBottom: "1px solid #333",
-  },
-  logo: { fontWeight: "bold", cursor: "pointer", fontSize: "18px" },
-  button: {
-    background: "#4a7c4a",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    padding: "8px 14px",
-    cursor: "pointer",
-  },
-};

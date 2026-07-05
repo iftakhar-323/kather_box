@@ -7,13 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// OrderRoutes mounts order-related endpoints.
 func OrderRoutes(router *gin.Engine) {
-	orderGroup := router.Group("/api/orders")
-	orderGroup.Use(middleware.AuthMiddleware())
+	userGroup := router.Group("/api/orders")
+	userGroup.Use(middleware.AuthMiddleware())
 	{
-		orderGroup.POST("/checkout", controllers.Checkout)
-		orderGroup.GET("/", controllers.GetMyOrders)
-		orderGroup.GET("/:id", controllers.GetOrder)
-		orderGroup.PUT("/:id/status", middleware.AdminMiddleware(), controllers.UpdateOrderStatus)
+		userGroup.POST("/checkout", controllers.Checkout)
+		userGroup.GET("/", controllers.GetMyOrders)
+		userGroup.GET("/:id", controllers.GetOrder)
 	}
 }
