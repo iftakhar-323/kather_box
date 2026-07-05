@@ -24,6 +24,7 @@ func main() {
 		&models.Notification{},
 		&models.Coupon{},
 		&models.CareReminder{},
+		&models.Address{},
 		&models.Subscription{},
 		&models.Consultation{},
 		&models.CorporateQuote{},

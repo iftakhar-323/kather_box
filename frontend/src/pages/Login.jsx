@@ -3,7 +3,7 @@ import API from "../api/axios";
 import { loginUser } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
-export default function Login({ onSwitch, onSuccess }) {
+export default function Login({ onSwitch, onSuccess, onGoToForgot }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -61,7 +61,7 @@ export default function Login({ onSwitch, onSuccess }) {
       </form>
 
       <p className="auth-foot">
-        <ForgotPasswordLink />
+        <ForgotPasswordLink onGoToForgot={onGoToForgot} />
         <br />
         <span className="muted">New to KatherBox?</span>{" "}
         <a
@@ -75,9 +75,23 @@ export default function Login({ onSwitch, onSuccess }) {
   );
 }
 
-function ForgotPasswordLink() {
+function ForgotPasswordLink({ onGoToForgot }) {
+  // If parent provides a router-style navigation, use the dedicated page.
+  // Otherwise fall back to the original in-page modal (preserves existing UX).
+  if (onGoToForgot) {
+    return (
+      <a
+        style={{ color: "var(--primary)", cursor: "pointer", fontSize: 13 }}
+        onClick={(e) => {
+          e.preventDefault();
+          onGoToForgot();
+        }}
+      >
+        Forgot password?
+      </a>
+    );
+  }
   const [open, setOpen] = useState(false);
-
   return (
     <>
       <a

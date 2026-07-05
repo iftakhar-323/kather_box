@@ -14,6 +14,11 @@ import Subscriptions from "./pages/Subscriptions";
 import Consultations from "./pages/Consultations";
 import Corporate from "./pages/Corporate";
 import Community from "./pages/Community";
+// Sprint A — profile + auth + static pages
+import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import StaticPage from "./pages/StaticPage";
 import EmailVerifyBanner from "./components/EmailVerifyBanner";
 import Notifications from "./components/Notifications";
 
@@ -29,6 +34,9 @@ const NAV_ITEMS = [
   { key: "reminders",     label: "Care 🌿" },
   { key: "seasonal",      label: "Seasonal" },
 ];
+
+// Sprint A — supported static-page slugs
+const STATIC_SLUGS = ["about", "contact", "faq", "privacy", "terms", "shipping", "refund"];
 
 function Footer() {
   const year = new Date().getFullYear();
@@ -58,6 +66,19 @@ function Footer() {
 
         <div className="footer-col">
           <h4>Support</h4>
+          <ul>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("about"); }}>About us</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("contact"); }}>Contact</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("faq"); }}>FAQ</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("shipping"); }}>Shipping policy</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("refund"); }}>Refund policy</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("privacy"); }}>Privacy policy</a></li>
+            <li><a href="#" onClick={(e) => { e.preventDefault(); window.__katherboxSetView?.("terms"); }}>Terms & conditions</a></li>
+          </ul>
+        </div>
+
+        <div className="footer-col">
+          <h4>Get in touch</h4>
           <div className="footer-contact">
             <div className="row">📧 hello@katherbox.com</div>
             <div className="row">📞 +880 1700 000 000</div>
@@ -126,13 +147,16 @@ function Navbar({ view, setView }) {
 
         {user ? (
           <>
-            <span className="nav-user">
+            <button
+              className={"btn btn-ghost btn-sm" + (view === "profile" ? " is-active" : "")}
+              onClick={() => setView("profile")}
+              title="Edit profile, password, addresses"
+            >
               <span className="avatar">
                 {(user.name || "?").trim().charAt(0).toUpperCase()}
               </span>
-              <span>Hi, {user.name}</span>
-              {isAdmin && <span className="role-badge">ADMIN</span>}
-            </span>
+              <span style={{ marginLeft: 6 }}>{user.name?.split(" ")[0]}</span>
+            </button>
             <button onClick={logout} className="btn btn-secondary btn-sm">
               Logout
             </button>
@@ -150,6 +174,8 @@ function Navbar({ view, setView }) {
 function MainApp() {
   const { user } = useAuth();
   const [view, setView] = useState("home");
+  // Carries data between ForgotPassword → ResetPassword flow (email + dev token)
+  const [resetContext, setResetContext] = useState({ email: "", token: "" });
 
   // expose setView globally so deeply nested components (e.g. ProductCard)
   // can navigate without prop-drilling through the entire tree.
@@ -173,6 +199,10 @@ function MainApp() {
           <Login
             onSwitch={() => setView("register")}
             onSuccess={() => setView("home")}
+            onGoToForgot={() => {
+              setResetContext({ email: "", token: "" });
+              setView("forgot-password");
+            }}
           />
         )}
         {view === "register" && (
@@ -181,6 +211,27 @@ function MainApp() {
             onSuccess={() => setView("home")}
           />
         )}
+        {view === "forgot-password" && (
+          <ForgotPassword
+            onSwitchToLogin={() => setView("login")}
+            onSwitchToReset={(email, token) => {
+              setResetContext({ email, token });
+              setView("reset-password");
+            }}
+          />
+        )}
+        {view === "reset-password" && (
+          <ResetPassword
+            prefillEmail={resetContext.email}
+            prefillToken={resetContext.token}
+            onDone={() => setView("login")}
+            onSwitchToLogin={() => setView("login")}
+          />
+        )}
+        {view === "profile" && (
+          <Profile onExit={() => setView("home")} />
+        )}
+        {STATIC_SLUGS.includes(view) && <StaticPage slug={view} />}
         {view === "cart" && <Cart onOrderPlaced={() => setView("orders")} />}
         {view === "orders" && <Orders />}
         {view === "admin" && <Admin />}

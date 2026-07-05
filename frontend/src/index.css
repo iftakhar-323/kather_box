@@ -279,6 +279,7 @@ a:hover { color: var(--primary-hover); text-decoration: underline; }
 .btn-sm { padding: 6px 12px; font-size: 12.5px; border-radius: 8px; }
 .btn-lg { padding: 14px 22px; font-size: 15px; border-radius: 12px; }
 .btn-block { width: 100%; }
+.btn-xs { padding: 4px 10px; font-size: 11.5px; border-radius: 6px; }
 
 /* Inputs */
 .input, .select, .textarea {
@@ -1281,4 +1282,362 @@ a:hover { color: var(--primary-hover); text-decoration: underline; }
   .role-badge { font-size: 9px; padding: 2px 6px; }
 
   .btn-block { padding: 10px 14px; }
+}
+/* ============================================================
+   Sprint A — Profile, Forgot/Reset Password, Static Pages
+   ============================================================ */
+
+/* ---------- Profile page wrapper ---------- */
+.profile-page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 8px 0 60px;
+}
+.profile-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.profile-title { margin: 0; font-size: 1.6rem; }
+.profile-sub { margin: 6px 0 0; color: var(--muted, #586a55); font-size: 0.92rem; }
+
+.profile-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #e6efe7;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.profile-tab {
+  background: transparent;
+  border: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #586a55;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.profile-tab:hover { color: var(--primary, #1b4332); }
+.profile-tab.is-active {
+  color: var(--primary, #1b4332);
+  border-bottom-color: var(--primary, #1b4332);
+}
+
+.profile-card {
+  background: #fff;
+  border: 1px solid #e6efe7;
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 8px 22px rgba(20, 50, 30, 0.05);
+}
+.profile-card h3 { margin: 0 0 4px; font-size: 1.15rem; color: var(--primary, #1b4332); }
+.profile-hint { margin: 0 0 18px; color: #586a55; font-size: 0.9rem; }
+.profile-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.profile-card-danger {
+  border-color: #f5c2c2;
+  background: linear-gradient(180deg, #fff, #fff5f5);
+}
+.profile-card-danger h3 { color: #b32525; }
+
+.profile-field { display: block; margin-bottom: 14px; }
+.profile-field > span {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d3e30;
+  margin-bottom: 6px;
+}
+.profile-field input,
+.profile-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfdcd2;
+  border-radius: 10px;
+  font: inherit;
+  background: #fbfdfb;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.profile-field input:focus,
+.profile-field textarea:focus {
+  outline: none;
+  border-color: var(--primary, #1b4332);
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.12);
+  background: #fff;
+}
+
+.profile-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+.profile-grid-full { grid-column: 1 / -1; }
+.profile-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.profile-check input { width: auto; }
+.profile-check span { display: inline; margin: 0; }
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.profile-toast {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  border: 1px solid transparent;
+  animation: toast-in 0.3s ease;
+}
+.profile-toast-success {
+  background: #e7f6ec;
+  color: #1b4332;
+  border-color: #b7e2c0;
+}
+.profile-toast-error {
+  background: #fdecec;
+  color: #8b1f1f;
+  border-color: #f5b5b5;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.profile-empty {
+  color: #586a55;
+  background: #f3f8f3;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  margin: 8px 0 0;
+}
+
+/* ---------- Address book ---------- */
+.addr-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.addr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #e6efe7;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: #fbfdfb;
+}
+.addr-row.is-default {
+  border-color: #5a8a6e;
+  background: linear-gradient(180deg, #f5fbf6, #fff);
+}
+.addr-main { flex: 1; min-width: 0; }
+.addr-line1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--primary, #1b4332);
+  margin-bottom: 4px;
+}
+.addr-label {
+  background: #d8e7dc;
+  color: var(--primary, #1b4332);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.addr-default-badge {
+  background: linear-gradient(135deg, #b08900, #f1c40f);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.addr-line2 { font-size: 14px; color: #2d3e30; margin-bottom: 2px; }
+.addr-line3 { font-size: 13px; color: #586a55; }
+.addr-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.btn-danger-text { color: #b32525; }
+.btn-danger-text:hover { background: #fdecec; }
+
+/* ---------- Forgot / Reset password ---------- */
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 30px 16px;
+}
+.auth-card {
+  background: #fff;
+  border: 1px solid #e6efe7;
+  border-radius: 16px;
+  padding: 28px 26px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 12px 30px rgba(20, 50, 30, 0.08);
+}
+.auth-title { margin: 0; font-size: 1.5rem; color: var(--primary, #1b4332); }
+.auth-sub { margin: 8px 0 22px; color: #586a55; font-size: 0.95rem; }
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-form .btn { width: 100%; justify-content: center; }
+.auth-err {
+  background: #fdecec;
+  color: #8b1f1f;
+  border: 1px solid #f5b5b5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.forgot-sent { text-align: center; }
+.forgot-check {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2d6a4f, #1b4332);
+  color: #fff;
+  margin: 6px auto 18px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  font-weight: 700;
+}
+.forgot-devbox {
+  background: #f3f8f3;
+  border: 1px dashed #5a8a6e;
+  padding: 12px;
+  border-radius: 10px;
+  margin: 14px 0;
+  font-size: 13px;
+}
+.forgot-token {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary, #1b4332);
+  background: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.2em;
+  margin-left: 4px;
+}
+.forgot-devhint {
+  color: #586a55;
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.forgot-sent .btn { margin: 6px auto; display: block; max-width: 320px; }
+
+.reset-code-input {
+  font-family: monospace;
+  font-size: 22px;
+  text-align: center;
+  letter-spacing: 0.4em;
+}
+
+/* ---------- Static pages (about, contact, faq, legal) ---------- */
+.static-page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 8px 0 60px;
+}
+.static-head {
+  text-align: center;
+  margin-bottom: 26px;
+  padding: 24px 16px;
+  background: linear-gradient(180deg, #f3f8f3, transparent);
+  border-radius: 16px;
+}
+.static-head h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--primary, #1b4332);
+}
+.static-intro {
+  margin: 10px auto 0;
+  max-width: 580px;
+  color: #586a55;
+  font-size: 1rem;
+}
+.static-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.static-section {
+  background: #fff;
+  border: 1px solid #e6efe7;
+  border-radius: 14px;
+  padding: 18px 22px;
+  box-shadow: 0 6px 18px rgba(20, 50, 30, 0.04);
+}
+.static-section h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  color: var(--primary, #1b4332);
+}
+.static-section p { margin: 0; color: #2d3e30; line-height: 1.55; }
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfdcd2;
+  border-radius: 10px;
+  font: inherit;
+  margin-bottom: 10px;
+  background: #fbfdfb;
+}
+.contact-form input:focus,
+.contact-form textarea:focus {
+  outline: none;
+  border-color: var(--primary, #1b4332);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.12);
+}
+.contact-form .btn { margin-top: 4px; }
+
+/* ---------- Danger button ---------- */
+.btn-danger {
+  background: linear-gradient(180deg, #c93434, #a52525);
+  color: #fff;
+  border: 1px solid #8c1f1f;
+  font-weight: 600;
+}
+.btn-danger:hover:not(:disabled) {
+  background: linear-gradient(180deg, #a52525, #8c1f1f);
+}
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- Responsive tweaks for new pages ---------- */
+@media (max-width: 760px) {
+  .profile-head { flex-direction: column; align-items: flex-start; }
+  .profile-grid-2 { grid-template-columns: 1fr; }
+  .addr-row { flex-direction: column; }
+  .addr-actions { justify-content: flex-start; }
 }
