@@ -17,6 +17,22 @@ import {
   adminUpdateCorporate,
 } from "../api/admin";
 import { createCoupon } from "../api/coupons";
+import {
+  getAnalyticsSummary,
+  getTopCustomers,
+  getInventoryReport,
+  getTrafficReport,
+  getCategoryRevenue,
+} from "../api/analytics";
+import { exportProductsCSV, importProductsCSV } from "../api/csv";
+import { exportBackup, importBackup } from "../api/backup";
+import {
+  getBlogPosts,
+  createBlogPost,
+  deleteBlogPost,
+  getBlogCategories,
+} from "../api/blog";
+import { useToast } from "../components/Toast";
 
 const STATUS_OPTIONS = [
   "Pending",
@@ -135,6 +151,41 @@ export default function Admin() {
         >
           Coupons
         </button>
+        <button
+          role="tab"
+          className={"tab" + (tab === "blog" ? " is-active" : "")}
+          onClick={() => setTab("blog")}
+        >
+          📚 Blog
+        </button>
+        <button
+          role="tab"
+          className={"tab" + (tab === "csv" ? " is-active" : "")}
+          onClick={() => setTab("csv")}
+        >
+          ⇋ CSV
+        </button>
+        <button
+          role="tab"
+          className={"tab" + (tab === "backup" ? " is-active" : "")}
+          onClick={() => setTab("backup")}
+        >
+          💾 Backup
+        </button>
+        <button
+          role="tab"
+          className={"tab" + (tab === "roles" ? " is-active" : "")}
+          onClick={() => setTab("roles")}
+        >
+          👥 Roles
+        </button>
+        <button
+          role="tab"
+          className={"tab" + (tab === "returns" ? " is-active" : "")}
+          onClick={() => setTab("returns")}
+        >
+          ↩ Returns
+        </button>
       </div>
 
       {authError && <div className="warning">{authError}</div>}
@@ -147,6 +198,537 @@ export default function Admin() {
       {tab === "consultations" && <AdminConsultationsTab />}
       {tab === "reminders" && <AdminRemindersTab />}
       {tab === "coupons" && <CouponsTab />}
+      {tab === "blog" && <BlogCMS />}
+      {tab === "csv" && <CSVTools />}
+      {tab === "backup" && <BackupTools />}
+      {tab === "roles" && <RolesAdmin />}
+      {tab === "returns" && <ReturnsAdmin />}
+    </div>
+  );
+}
+
+// ============ Blog CMS Tab ============
+function BlogCMS() {
+  const toast = useToast();
+  const [posts, setPosts] = useState([]);
+  const [cats, setCats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    body: "",
+    slug: "",
+    category_id: "",
+    cover_emoji: "🌿",
+    excerpt: "",
+    read_min: 3,
+    status: "published",
+  });
+  const [busy, setBusy] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([getBlogPosts(), getBlogCategories()])
+      .then(([p, c]) => {
+        setPosts(p.data?.posts || p.data?.items || []);
+        setCats(c.data?.categories || c.data?.items || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(load, []);
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await createBlogPost({
+        ...form,
+        category_id: form.category_id ? Number(form.category_id) : null,
+        read_min: Number(form.read_min) || 3,
+      });
+      toast.ok("Post published");
+      setShowForm(false);
+      setForm({
+        title: "",
+        body: "",
+        slug: "",
+        category_id: "",
+        cover_emoji: "🌿",
+        excerpt: "",
+        read_min: 3,
+        status: "published",
+      });
+      load();
+    } catch (e) {
+      toast.err(e?.response?.data?.error || e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onDelete = async (id) => {
+    if (!window.confirm("Delete this post?")) return;
+    try {
+      await deleteBlogPost(id);
+      toast.ok("Deleted");
+      load();
+    } catch (e) {
+      toast.err(e?.response?.data?.error || e.message);
+    }
+  };
+
+  return (
+    <div>
+      <div className="row mb-16">
+        <button className="btn btn-primary" onClick={() => setShowForm((s) => !s)}>
+          {showForm ? "Cancel" : "➕ New post"}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={onSubmit} className="card card-pad-lg mb-16">
+          <div className="row" style={{ gap: 8 }}>
+            <input
+              className="input"
+              placeholder="Title *"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required
+              style={{ flex: 2 }}
+            />
+            <input
+              className="input"
+              placeholder="slug"
+              value={form.slug}
+              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              style={{ flex: 1 }}
+            />
+          </div>
+          <textarea
+            className="input mt-8"
+            rows={5}
+            placeholder="Body (markdown-ish) *"
+            value={form.body}
+            onChange={(e) => setForm({ ...form, body: e.target.value })}
+            required
+            style={{ resize: "vertical" }}
+          />
+          <input
+            className="input mt-8"
+            placeholder="Short excerpt"
+            value={form.excerpt}
+            onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
+          />
+          <div className="row mt-8" style={{ gap: 8 }}>
+            <select
+              className="input"
+              value={form.category_id}
+              onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+              style={{ flex: 1 }}
+            >
+              <option value="">— category —</option>
+              {cats.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              value={form.cover_emoji}
+              onChange={(e) => setForm({ ...form, cover_emoji: e.target.value })}
+              maxLength={4}
+              style={{ width: 80 }}
+              placeholder="🌿"
+            />
+            <input
+              className="input"
+              type="number"
+              min="1"
+              value={form.read_min}
+              onChange={(e) => setForm({ ...form, read_min: e.target.value })}
+              style={{ width: 110 }}
+            />
+            <select
+              className="input"
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              style={{ width: 140 }}
+            >
+              <option value="published">published</option>
+              <option value="draft">draft</option>
+            </select>
+          </div>
+          <button className="btn btn-primary mt-8" disabled={busy}>
+            {busy ? "Saving…" : "Publish"}
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="muted">Loading…</div>
+      ) : (
+        <div className="table">
+          {posts.length === 0 ? (
+            <div className="muted">No posts yet.</div>
+          ) : (
+            posts.map((p) => (
+              <div
+                key={p.id}
+                className="row-card"
+                style={{ borderRadius: 0, borderBottom: "1px solid var(--leaf-100)" }}
+              >
+                <span style={{ fontSize: 28 }}>{p.cover_emoji || "🌿"}</span>
+                <div style={{ flex: 1 }}>
+                  <strong>{p.title}</strong>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {p.category_name || "—"} · {p.status}
+                  </div>
+                </div>
+                <button className="btn btn-danger btn-sm" onClick={() => onDelete(p.id)}>
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ CSV Tools Tab ============
+function CSVTools() {
+  const toast = useToast();
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  const onExport = async () => {
+    setBusy(true);
+    try {
+      const blob = await exportProductsCSV();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "products.csv";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+      toast.ok("CSV downloaded");
+    } catch (e) {
+      toast.err(e?.response?.data?.error || e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      await importProductsCSV(file);
+      toast.ok("Products imported — reload admin to see updates");
+    } catch (e) {
+      toast.err(e?.response?.data?.error || "Import failed");
+    } finally {
+      setBusy(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="card card-pad-lg" style={{ maxWidth: 540 }}>
+      <h3 style={{ marginTop: 0 }}>CSV import / export</h3>
+      <p className="muted">
+        Bulk-update products by exporting current stock, editing in any
+        spreadsheet, then importing back.
+      </p>
+      <div className="row gap-8 mt-16" style={{ flexWrap: "wrap" }}>
+        <button className="btn btn-secondary" disabled={busy} onClick={onExport}>
+          ⬇ Export products.csv
+        </button>
+        <button
+          className="btn btn-primary"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+        >
+          ⬆ Import CSV
+        </button>
+        <input
+          type="file"
+          accept=".csv"
+          ref={fileRef}
+          style={{ display: "none" }}
+          onChange={onImport}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============ Backup Tools Tab ============
+function BackupTools() {
+  const toast = useToast();
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  const onBackup = async () => {
+    setBusy(true);
+    try {
+      const blob = await exportBackup();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `katherbox-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+      toast.ok("Backup downloaded");
+    } catch (e) {
+      toast.err(e?.response?.data?.error || e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRestore = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!window.confirm("Restore from this backup? Existing data may be overwritten.")) {
+      e.target.value = "";
+      return;
+    }
+    setBusy(true);
+    try {
+      await importBackup(file);
+      toast.ok("Backup restored — refresh to see changes");
+    } catch (e) {
+      toast.err(e?.response?.data?.error || "Restore failed");
+    } finally {
+      setBusy(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="card card-pad-lg" style={{ maxWidth: 540 }}>
+      <h3 style={{ marginTop: 0 }}>Backup &amp; restore</h3>
+      <p className="muted">
+        Download a full JSON snapshot of all data, or restore from a previous
+        backup. Store backups offline for safety.
+      </p>
+      <div className="row gap-8 mt-16" style={{ flexWrap: "wrap" }}>
+        <button className="btn btn-secondary" disabled={busy} onClick={onBackup}>
+          💾 Download backup
+        </button>
+        <button
+          className="btn btn-danger"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+        >
+          ⬆ Restore from JSON
+        </button>
+        <input
+          type="file"
+          accept=".json"
+          ref={fileRef}
+          style={{ display: "none" }}
+          onChange={onRestore}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============ Roles Tab ============
+function RolesAdmin() {
+  const toast = useToast();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const load = () => {
+    setLoading(true);
+    getAllUsers()
+      .then((r) => {
+        setUsers(r.data?.items || r.data?.users || []);
+        setLoading(false);
+      })
+      .catch((e) => {
+        toast.err(e?.response?.data?.error || "Failed to load users");
+        setLoading(false);
+      });
+  };
+
+  useEffect(load, []);
+
+  const onRoleChange = async (u, role) => {
+    try {
+      await updateUserRole(u.id, role);
+      toast.ok(`${u.name} → ${role}`);
+      load();
+    } catch (e) {
+      toast.err(e?.response?.data?.error || e.message);
+    }
+  };
+
+  const filtered = users.filter((u) =>
+    !search ||
+    (u.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.email || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div>
+      <input
+        className="input mb-16"
+        placeholder="Search by name or email…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ maxWidth: 360 }}
+      />
+      {loading ? (
+        <div className="muted">Loading…</div>
+      ) : (
+        <div className="table">
+          {filtered.length === 0 ? (
+            <div className="muted">No users.</div>
+          ) : (
+            filtered.map((u) => (
+              <div
+                key={u.id}
+                className="row-card"
+                style={{
+                  borderRadius: 0,
+                  borderBottom: "1px solid var(--leaf-100)",
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 999,
+                    background: "var(--leaf-100)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                  }}
+                >
+                  {(u.name || "?").charAt(0).toUpperCase()}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <strong>{u.name}</strong>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {u.email}
+                  </div>
+                </div>
+                <select
+                  className="input"
+                  value={u.role || "customer"}
+                  onChange={(e) => onRoleChange(u, e.target.value)}
+                  style={{ width: 160 }}
+                >
+                  <option value="customer">customer</option>
+                  <option value="staff">staff</option>
+                  <option value="admin">admin</option>
+                </select>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ Returns Admin Tab ============
+function ReturnsAdmin() {
+  const toast = useToast();
+  const [rows, setRows] = useState([]);
+  const [tab, setTab] = useState("returns");
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    import("../api/orderExt").then((m) =>
+      m.getReturns().then((r) => {
+        setRows(r.data?.returns || r.data?.items || []);
+        setLoading(false);
+      })
+    );
+  };
+
+  useEffect(load, []);
+
+  const onUpdate = async (id, status) => {
+    const m = await import("../api/orderExt");
+    try {
+      await m.updateReturnStatus(id, status);
+      toast.ok(`${status}`);
+      load();
+    } catch (e) {
+      toast.err(e?.response?.data?.error || e.message);
+    }
+  };
+
+  if (loading) return <div className="muted">Loading…</div>;
+
+  return (
+    <div>
+      <p className="muted">
+        Approve, reject, or refund incoming return / refund / exchange requests.
+      </p>
+      {rows.length === 0 ? (
+        <div className="muted">No pending requests.</div>
+      ) : (
+        <div className="table">
+          {rows.map((r) => (
+            <div
+              key={r.id}
+              className="card card-pad mb-8"
+            >
+              <div className="row">
+                <strong>
+                  #{r.order_id || r.ID} · {r.type || "return"}
+                </strong>
+                <span className="tag tag-leaf">{r.status}</span>
+              </div>
+              <p style={{ margin: "6px 0" }}>{r.reason || r.details}</p>
+              <div className="row" style={{ gap: 6, marginTop: 6 }}>
+                <button
+                  className="btn btn-primary btn-xs"
+                  onClick={() => onUpdate(r.id, "approved")}
+                >
+                  Approve
+                </button>
+                <button
+                  className="btn btn-danger btn-xs"
+                  onClick={() => onUpdate(r.id, "rejected")}
+                >
+                  Reject
+                </button>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  onClick={() => onUpdate(r.id, "refunded")}
+                >
+                  Mark refunded
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

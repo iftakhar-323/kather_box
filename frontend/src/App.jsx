@@ -21,6 +21,26 @@ import ResetPassword from "./pages/ResetPassword";
 import StaticPage from "./pages/StaticPage";
 import EmailVerifyBanner from "./components/EmailVerifyBanner";
 import Notifications from "./components/Notifications";
+// Sprint C — UI polish + zero-API features
+import { ToastProvider } from "./components/Toast";
+import ScrollProgress from "./components/ScrollProgress";
+import ThemeToggle from "./components/ThemeToggle";
+import RecentlyViewed from "./components/RecentlyViewed";
+import CompareDrawer, { CompareBar } from "./components/CompareDrawer";
+import Onboarding from "./components/Onboarding";
+import StatsCounter from "./components/StatsCounter";
+import FeaturedCollections from "./components/FeaturedCollections";
+import QuickView from "./components/QuickView";
+// Sprint D — no-API feature pages
+import Loyalty from "./pages/Loyalty";
+import Blog from "./pages/Blog";
+import BlogDetail from "./pages/BlogDetail";
+import CommunityQA from "./pages/CommunityQA";
+import Care from "./pages/Care";
+import CorporateOrders from "./pages/CorporateOrders";
+import OrderDetail from "./pages/OrderDetail";
+import GiftCards from "./pages/GiftCards";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const NAV_ITEMS = [
   { key: "home",          label: "Shop" },
@@ -29,7 +49,12 @@ const NAV_ITEMS = [
   { key: "orders",        label: "Orders" },
   { key: "subscriptions", label: "Boxes 📦" },
   { key: "consultations", label: "Experts 🌱" },
-  { key: "corporate",     label: "Corporate 🏢" },
+  { key: "care",          label: "Care 🌿" },
+  { key: "blog",          label: "Blog" },
+  { key: "communityqa",   label: "Q&A 💡" },
+  { key: "loyalty",       label: "Loyalty 🏆" },
+  { key: "gift-cards",    label: "Gift 🎁" },
+  { key: "corp-portal",   label: "Corporate 🏢" },
   { key: "community",     label: "Community" },
   { key: "reminders",     label: "Care 🌿" },
   { key: "seasonal",      label: "Seasonal" },
@@ -145,6 +170,8 @@ function Navbar({ view, setView }) {
 
         <span className="nav-spacer" />
 
+        <ThemeToggle />
+
         {user ? (
           <>
             <button
@@ -176,15 +203,32 @@ function MainApp() {
   const [view, setView] = useState("home");
   // Carries data between ForgotPassword → ResetPassword flow (email + dev token)
   const [resetContext, setResetContext] = useState({ email: "", token: "" });
+  // Quick-view modal id (null = closed)
+  const [quickViewId, setQuickViewId] = useState(null);
+  // Currently-opened order (used by OrderDetail)
+  const [orderCtx, setOrderCtx] = useState(null);
 
   // expose setView globally so deeply nested components (e.g. ProductCard)
   // can navigate without prop-drilling through the entire tree.
   useEffect(() => {
     window.__katherboxSetView = setView;
+    window.__katherboxOpenOrder = (order) => {
+      setOrderCtx(order);
+      setView("order-detail");
+    };
     return () => {
       if (window.__katherboxSetView === setView) {
         delete window.__katherboxSetView;
+        delete window.__katherboxOpenOrder;
       }
+    };
+  }, []);
+
+  // Expose a global Quick-View handler for nested ProductCards
+  useEffect(() => {
+    window.__katherboxOpenQuickView = (id) => setQuickViewId(id);
+    return () => {
+      if (window.__katherboxOpenQuickView) delete window.__katherboxOpenQuickView;
     };
   }, []);
 
@@ -194,7 +238,15 @@ function MainApp() {
       {user && <EmailVerifyBanner user={user} />}
 
       <main className="page">
-        {view === "home" && <Home />}
+        <ErrorBoundary>
+        {view === "home" && (
+          <>
+            <FeaturedCollections onQuickView={(id) => setQuickViewId(id)} />
+            <StatsCounter />
+            <Home />
+            <RecentlyViewed />
+          </>
+        )}
         {view === "login" && (
           <Login
             onSwitch={() => setView("register")}
@@ -242,16 +294,42 @@ function MainApp() {
         {view === "consultations" && <Consultations />}
         {view === "corporate" && <Corporate />}
         {view === "community" && <Community />}
+        {view === "loyalty" && <Loyalty />}
+        {view === "blog" && <Blog />}
+        {view === "communityqa" && <CommunityQA />}
+        {view === "care" && <Care />}
+        {view === "corp-portal" && <CorporateOrders />}
+        {view === "gift-cards" && <GiftCards />}
+        {view === "order-detail" && (
+          <OrderDetail
+            order={orderCtx}
+            onBack={() => setView("orders")}
+          />
+        )}
+        {view.startsWith("blog-") && (
+          <BlogDetail
+            slug={view.replace("blog-", "")}
+            onBack={() => setView("blog")}
+          />
+        )}
         {view.startsWith("product-") && (
           <ProductDetail
             productId={Number(view.replace("product-", ""))}
             onBack={() => setView("home")}
           />
         )}
+        </ErrorBoundary>
       </main>
 
       {user && <Notifications />}
 
+      {quickViewId && (
+        <QuickView
+          productId={quickViewId}
+          onClose={() => setQuickViewId(null)}
+        />
+      )}
+      <CompareDrawer />
       <Footer />
     </div>
   );
@@ -260,7 +338,12 @@ function MainApp() {
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <ToastProvider>
+        <ScrollProgress />
+        <MainApp />
+        <CompareBar />
+        <Onboarding />
+      </ToastProvider>
     </AuthProvider>
   );
 }

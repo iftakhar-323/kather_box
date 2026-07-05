@@ -31,6 +31,32 @@ func main() {
 		&models.CommunityPost{},
 		&models.CommunityComment{},
 		&models.CommunityLike{},
+		// Sprint D-I extensions
+		&models.OrderEvent{},
+		&models.ReturnRequest{},
+		&models.SubscriptionDelivery{},
+		&models.GrowthJournal{},
+		&models.CareSchedule{},
+		&models.CommunityFollow{},
+		&models.CommunityBookmark{},
+		&models.CommunityGroup{},
+		&models.CommunityGroupMember{},
+		&models.CommunityQuestion{},
+		&models.CommunityAnswer{},
+		&models.Achievement{},
+		&models.UserAchievement{},
+		&models.ReferralCode{},
+		&models.Referral{},
+		&models.MembershipTier{},
+		&models.CouponReward{},
+		&models.CorporateOrder{},
+		&models.BlogPost{},
+		&models.PageView{},
+		&models.GuestOrder{},
+		&models.GiftCard{},
+		&models.ShippingRule{},
+		&models.TaxRule{},
+		&models.UserMembership{},
 	)
 
 	router := gin.Default()
@@ -59,6 +85,18 @@ func main() {
 	routes.CorporateRoutes(router)
 	routes.CommunityRoutes(router)
 	routes.AdminRoutes(router)
+	// Sprint D-I extensions
+	routes.OrderExtensionRoutes(router)
+	routes.CareJournalRoutes(router)
+	routes.CommunityExtensionRoutes(router)
+	routes.LoyaltyRoutes(router)
+	routes.CorporateOrderRoutes(router)
+	routes.BlogRoutes(router)
+	routes.AnalyticsRoutes(router)
+	routes.ShoppingRoutes(router)
+	routes.CSVRoutes(router)
+	routes.BackupRoutes(router)
+	routes.AddressRoutes(router)
 
 	router.Run(":8081")
 }

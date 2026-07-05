@@ -7,4 +7,5 @@ export const checkout = () => API.post("/orders/checkout");
 export const getMyOrders = () => API.get("/orders/");
 
 // GET /api/orders/:id  — single order detail
-export const getOrder = (id) => API.get(`/orders/${id}`);
+export const getOrder = (id) => API.get(`/orders/${id}`);// POST /api/orders/:id/cancel
+export const cancelOrder = (id) => API.post(`/orders/${id}/cancel`);

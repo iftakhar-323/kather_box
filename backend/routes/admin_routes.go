@@ -15,7 +15,7 @@ func AdminRoutes(router *gin.Engine) {
 		g.GET("/orders", controllers.GetAllOrders)
 		g.PUT("/orders/:id/status", controllers.UpdateOrderStatus)
 		g.DELETE("/orders/:id", controllers.DeleteOrder)
-		g.GET("/analytics", controllers.Analytics)
+		g.GET("/analytics", controllers.AnalyticsSummary)
 
 		// reminders
 		g.GET("/reminders", controllers.AdminListReminders)

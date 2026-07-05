@@ -151,6 +151,13 @@ export default function Orders() {
                     ? "Hide"
                     : `Items (${o.items?.length || 0})`}
                 </button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => window.__katherboxOpenOrder?.(o)}
+                  title="View timeline, request return/refund, download invoice"
+                >
+                  📍 Details
+                </button>
               </div>
 
               {isOpen && (

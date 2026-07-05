@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getProduct } from "../api/products";
 import { addToCart } from "../api/cart";
+import { CompareStore, SaveForLaterStore, RecentStore } from "../utils/kb";
+import { useToast } from "../components/Toast";
 
 function emojiFor(category) {
   if (category === "plant") return "🌿";
@@ -11,9 +13,12 @@ function emojiFor(category) {
 
 export default function ProductDetail({ productId, onBack }) {
   const { user } = useAuth();
+  const toast = useToast();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("idle");
+  const [inCompare, setInCompare] = useState(CompareStore.has(productId));
+  const [inSaved, setInSaved] = useState(SaveForLaterStore.has(productId));
 
   useEffect(() => {
     setLoading(true);
@@ -21,6 +26,9 @@ export default function ProductDetail({ productId, onBack }) {
       .then((res) => {
         setProduct(res.data);
         setLoading(false);
+        // Push to recently-viewed the moment we have the data
+        RecentStore.push(res.data);
+        window.dispatchEvent(new Event("kb:recent-changed"));
       })
       .catch((err) => {
         console.error(err);
@@ -167,6 +175,60 @@ export default function ProductDetail({ productId, onBack }) {
           >
             {btnLabel}
           </button>
+
+          <div className="row gap-8 mt-12" style={{ flexWrap: "wrap" }}>
+            <button
+              className={"btn btn-secondary btn-sm" + (inCompare ? "" : "")}
+              onClick={() => {
+                if (!product) return;
+                const r = CompareStore.toggle(product);
+                if (r === "full") { toast.err("Compare list is full (4 max)"); return; }
+                setInCompare(r);
+                window.dispatchEvent(new Event("kb:compare-changed"));
+                toast.ok(r ? "Added to compare" : "Removed from compare");
+              }}
+              title="Toggle compare"
+            >
+              {inCompare ? "✓ In compare" : "⚖ Compare"}
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                if (!product) return;
+                if (SaveForLaterStore.has(product.ID)) {
+                  SaveForLaterStore.remove(product.ID);
+                  setInSaved(false);
+                  toast.ok("Removed from saved-for-later");
+                } else {
+                  SaveForLaterStore.add(product);
+                  setInSaved(true);
+                  toast.ok("Saved for later 🔖");
+                }
+                window.dispatchEvent(new Event("kb:save-changed"));
+              }}
+              title="Save for later"
+            >
+              {inSaved ? "✓ Saved for later" : "🔖 Save for later"}
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                if (!product) return;
+                const url = window.location.href;
+                if (navigator.share) {
+                  navigator.share({ title: product.name, text: product.description, url }).catch(() => {});
+                } else if (navigator.clipboard) {
+                  navigator.clipboard.writeText(url);
+                  toast.ok("Link copied to clipboard");
+                } else {
+                  toast.info(`Share this link: ${url}`);
+                }
+              }}
+              title="Share"
+            >
+              🔗 Share
+            </button>
+          </div>
         </div>
       </div>
     </div>
