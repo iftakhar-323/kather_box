@@ -20,6 +20,13 @@ export const deleteOrder = (id) => API.delete(`/admin/orders/${id}`);
 // GET /api/admin/analytics - dashboard stats (revenue, top products, etc.)
 export const getAnalytics = () => API.get("/admin/analytics");
 
+// GET /api/admin/users - list all users
+export const getAllUsers = () => API.get("/admin/users");
+
+// PUT /api/admin/users/:id/role  { role }
+export const updateUserRole = (id, role) =>
+  API.put(`/admin/users/${id}/role`, { role });
+
 // ===== Admin reminders =====
 // GET /api/admin/reminders - all pending reminders across users
 export const adminListReminders = () => API.get("/admin/reminders");

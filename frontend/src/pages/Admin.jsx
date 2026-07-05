@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import {
@@ -6,6 +6,8 @@ import {
   updateOrderStatus,
   deleteOrder,
   getAnalytics,
+  getAllUsers,
+  updateUserRole,
   adminListReminders,
   adminCompleteReminder,
   adminListSubscriptions,
@@ -1461,20 +1463,39 @@ function OrdersTab() {
 // ============ Dashboard Tab ============
 function DashboardTab() {
   const [stats, setStats] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [topCustomers, setTopCustomers] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [traffic, setTraffic] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [days, setDays] = useState(30);
 
   useEffect(() => {
-    getAnalytics()
-      .then((res) => {
-        setStats(res.data);
+    setLoading(true);
+    Promise.all([
+      getAnalytics(),
+      getAnalyticsSummary(days).catch(() => ({ data: null })),
+      getTopCustomers(10).catch(() => ({ data: { items: [] } })),
+      getInventoryReport().catch(() => ({ data: { items: [] } })),
+      getTrafficReport(days).catch(() => ({ data: { series: [] } })),
+      getCategoryRevenue().catch(() => ({ data: { items: [] } })),
+    ])
+      .then(([s, sum, tc, inv, tr, cat]) => {
+        setStats(s.data);
+        setSummary(sum.data);
+        setTopCustomers(tc.data?.items || []);
+        setInventory(inv.data?.items || []);
+        setTraffic(tr.data?.series || []);
+        setCategories(cat.data?.items || []);
         setLoading(false);
       })
       .catch((e) => {
         setError(e?.response?.data?.error || e.message);
         setLoading(false);
       });
-  }, []);
+  }, [days]);
 
   if (loading) return <div className="empty"><div className="emoji">📊</div><h3>Loading analytics…</h3></div>;
   if (error) return <div className="warning">{error}</div>;
@@ -1488,8 +1509,63 @@ function DashboardTab() {
     { label: "Open reminders", value: stats.total_reminders, emoji: "⏰" },
   ];
 
+  // ── 14-day traffic sparkline ──
+  const trafficMax = Math.max(1, ...traffic.map((t) => t.page_views || t.views || 0));
+  const last14 = traffic.slice(-14);
+  const sparkW = 100;
+  const sparkH = 36;
+  const sparkPts = last14
+    .map((t, i) => {
+      const x = (i / Math.max(1, last14.length - 1)) * sparkW;
+      const v = (t.page_views || t.views || 0) / trafficMax;
+      const y = sparkH - v * sparkH;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  // ── Category pie (svg) ──
+  const totalCat = categories.reduce((s, c) => s + Number(c.revenue || 0), 0) || 1;
+  let pieAcc = 0;
+  const palette = ["#5e8b56", "#d2a56b", "#7caea4", "#b08268", "#9bbc7e", "#c79968"];
+  const pieSize = 140;
+  const pieR = 60;
+  const pieCx = pieSize / 2;
+  const pieCy = pieSize / 2;
+  const pieArcs = categories.map((c, i) => {
+    const frac = Number(c.revenue || 0) / totalCat;
+    const startA = pieAcc * Math.PI * 2 - Math.PI / 2;
+    pieAcc += frac;
+    const endA = pieAcc * Math.PI * 2 - Math.PI / 2;
+    const x1 = pieCx + pieR * Math.cos(startA);
+    const y1 = pieCy + pieR * Math.sin(startA);
+    const x2 = pieCx + pieR * Math.cos(endA);
+    const y2 = pieCy + pieR * Math.sin(endA);
+    const large = frac > 0.5 ? 1 : 0;
+    return {
+      d: `M ${pieCx} ${pieCy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${pieR} ${pieR} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`,
+      color: palette[i % palette.length],
+      label: c.category,
+      revenue: c.revenue,
+      pct: (frac * 100).toFixed(0),
+    };
+  });
+
   return (
     <div>
+      <div className="row mb-16" style={{ gap: 8, alignItems: "center" }}>
+        <label className="muted">Window:</label>
+        <select
+          className="input"
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+          style={{ width: 140 }}
+        >
+          <option value={7}>Last 7 days</option>
+          <option value={30}>Last 30 days</option>
+          <option value={90}>Last 90 days</option>
+        </select>
+      </div>
+
       <div
         style={{
           display: "grid",
@@ -1506,9 +1582,79 @@ function DashboardTab() {
         ))}
       </div>
 
-      <div className="row mt-24" style={{ alignItems: "stretch" }}>
-        <div className="card" style={{ flex: 1, padding: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Top-selling products</h3>
+      {summary && (
+        <div className="row mt-16" style={{ alignItems: "stretch", gap: 12 }}>
+          <div className="card" style={{ flex: 1, padding: 16 }}>
+            <h3 style={{ marginTop: 0 }}>📈 Traffic sparkline ({days}d)</h3>
+            <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+              {last14.length === 0
+                ? "No traffic logged yet"
+                : `${last14.reduce((s, t) => s + (t.page_views || t.views || 0), 0)} page views in last 14 logged days`}
+            </div>
+            {last14.length > 0 ? (
+              <svg width="100%" height={sparkH} viewBox={`0 0 ${sparkW} ${sparkH}`} preserveAspectRatio="none">
+                <polyline
+                  points={sparkPts}
+                  fill="none"
+                  stroke="var(--leaf-600, #5e8b56)"
+                  strokeWidth="2"
+                  vectorEffect="non-scaling-stroke"
+                />
+                {last14.map((t, i) => {
+                  const x = (i / Math.max(1, last14.length - 1)) * sparkW;
+                  const v = (t.page_views || t.views || 0) / trafficMax;
+                  const y = sparkH - v * sparkH;
+                  return <circle key={i} cx={x} cy={y} r="1.6" fill="#5e8b56" />;
+                })}
+              </svg>
+            ) : (
+              <div className="muted" style={{ height: sparkH, display: "flex", alignItems: "center" }}>
+                No data
+              </div>
+            )}
+          </div>
+
+          <div className="card" style={{ flex: 1, padding: 16 }}>
+            <h3 style={{ marginTop: 0 }}>🥧 Revenue by category</h3>
+            {categories.length === 0 ? (
+              <p className="muted">No sales yet.</p>
+            ) : (
+              <div className="row" style={{ alignItems: "center", gap: 16 }}>
+                <svg width={pieSize} height={pieSize} viewBox={`0 0 ${pieSize} ${pieSize}`}>
+                  {pieArcs.map((a, i) => (
+                    <path key={i} d={a.d} fill={a.color}>
+                      <title>{`${a.label}: ৳${Number(a.revenue).toFixed(0)} (${a.pct}%)`}</title>
+                    </path>
+                  ))}
+                  <circle cx={pieCx} cy={pieCy} r={pieR * 0.55} fill="white" />
+                </svg>
+                <div style={{ flex: 1 }}>
+                  {pieArcs.map((a, i) => (
+                    <div key={i} className="row" style={{ fontSize: 13, padding: "3px 0" }}>
+                      <span
+                        style={{
+                          width: 12,
+                          height: 12,
+                          background: a.color,
+                          borderRadius: 3,
+                          display: "inline-block",
+                          marginRight: 6,
+                        }}
+                      />
+                      <span style={{ flex: 1 }}>{a.label}</span>
+                      <span className="muted">{a.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="row mt-16" style={{ alignItems: "stretch", gap: 12, flexWrap: "wrap" }}>
+        <div className="card" style={{ flex: 1, minWidth: 280, padding: 16 }}>
+          <h3 style={{ marginTop: 0 }}>🏆 Top-selling products</h3>
           {(stats.top_products || []).length === 0 && <p className="muted">No sales yet.</p>}
           {(stats.top_products || []).map((p, i) => (
             <div key={p.product_id} className="row" style={{ padding: "6px 0", borderBottom: "1px solid var(--leaf-100)" }}>
@@ -1522,15 +1668,62 @@ function DashboardTab() {
           ))}
         </div>
 
-        <div className="card" style={{ flex: 1, padding: 16 }}>
-          <h3 style={{ marginTop: 0 }}>Orders by status</h3>
+        <div className="card" style={{ flex: 1, minWidth: 280, padding: 16 }}>
+          <h3 style={{ marginTop: 0 }}>👑 Top customers</h3>
+          {topCustomers.length === 0 ? (
+            <p className="muted">No buyers yet.</p>
+          ) : (
+            topCustomers.map((u, i) => (
+              <div
+                key={u.id || u.email}
+                className="row"
+                style={{ padding: "6px 0", borderBottom: "1px solid var(--leaf-100)" }}
+              >
+                <span style={{ width: 24, color: "var(--leaf-700)", fontWeight: 700 }}>#{i + 1}</span>
+                <span style={{ flex: 1 }}>{u.name || u.email}</span>
+                <span className="muted">{u.orders} orders</span>
+                <span style={{ minWidth: 80, textAlign: "right", fontWeight: 600 }}>
+                  ৳{Number(u.spent || u.total_spent || 0).toFixed(0)}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="card" style={{ flex: 1, minWidth: 280, padding: 16 }}>
+          <h3 style={{ marginTop: 0 }}>⚠️ Low stock</h3>
+          {inventory.length === 0 ? (
+            <p className="muted">All products healthy.</p>
+          ) : (
+            inventory.slice(0, 8).map((p) => (
+              <div
+                key={p.ID || p.id}
+                className="row"
+                style={{ padding: "6px 0", borderBottom: "1px solid var(--leaf-100)" }}
+              >
+                <span style={{ flex: 1 }}>{p.name}</span>
+                <span
+                  style={{
+                    color: p.stock === 0 ? "var(--rose)" : "var(--warning)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {p.stock} left
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="card mt-16" style={{ padding: 16 }}>
+        <h3 style={{ marginTop: 0 }}>📦 Orders by status</h3>
+        <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
           {(stats.orders_by_status || []).length === 0 && <p className="muted">No orders yet.</p>}
           {(stats.orders_by_status || []).map((s) => (
-            <div key={s.status} className="row" style={{ padding: "6px 0", borderBottom: "1px solid var(--leaf-100)" }}>
-              <span className="status-pill">{s.status}</span>
-              <span className="spacer" />
-              <strong>{s.count}</strong>
-            </div>
+            <span key={s.status} className="status-pill" style={{ fontSize: 14 }}>
+              {s.status} <strong>· {s.count}</strong>
+            </span>
           ))}
         </div>
       </div>
