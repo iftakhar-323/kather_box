@@ -41,23 +41,25 @@ import CorporateOrders from "./pages/CorporateOrders";
 import OrderDetail from "./pages/OrderDetail";
 import GiftCards from "./pages/GiftCards";
 import ErrorBoundary from "./components/ErrorBoundary";
+import LangToggle from "./components/LangToggle";
+import { I18nProvider, useTranslation } from "./i18n/I18nProvider";
 
 const NAV_ITEMS = [
-  { key: "home",          label: "Shop" },
-  { key: "wishlist",      label: "Wishlist" },
-  { key: "cart",          label: "Cart" },
-  { key: "orders",        label: "Orders" },
-  { key: "subscriptions", label: "Boxes 📦" },
-  { key: "consultations", label: "Experts 🌱" },
-  { key: "care",          label: "Care 🌿" },
-  { key: "blog",          label: "Blog" },
-  { key: "communityqa",   label: "Q&A 💡" },
-  { key: "loyalty",       label: "Loyalty 🏆" },
-  { key: "gift-cards",    label: "Gift 🎁" },
-  { key: "corp-portal",   label: "Corporate 🏢" },
-  { key: "community",     label: "Community" },
-  { key: "reminders",     label: "Care 🌿" },
-  { key: "seasonal",      label: "Seasonal" },
+  { key: "home",          tKey: "nav.shop",           emoji: "" },
+  { key: "wishlist",      tKey: "nav.wishlist",       emoji: "" },
+  { key: "cart",          tKey: "nav.cart",           emoji: "" },
+  { key: "orders",        tKey: "nav.orders",         emoji: "" },
+  { key: "subscriptions", tKey: "nav.subscriptions",  emoji: "📦" },
+  { key: "consultations", tKey: "nav.consultations",  emoji: "🌱" },
+  { key: "care",          tKey: "nav.care",           emoji: "🌿" },
+  { key: "blog",          tKey: "nav.blog",           emoji: "" },
+  { key: "communityqa",   tKey: "nav.communityqa",    emoji: "💡" },
+  { key: "loyalty",       tKey: "nav.loyalty",        emoji: "🏆" },
+  { key: "gift-cards",    tKey: "nav.giftCards",      emoji: "🎁" },
+  { key: "corp-portal",   tKey: "nav.corpPortal",     emoji: "🏢" },
+  { key: "community",     tKey: "nav.community",      emoji: "" },
+  { key: "reminders",     tKey: "nav.reminders",      emoji: "🌿" },
+  { key: "seasonal",      tKey: "nav.seasonal",       emoji: "" },
 ];
 
 // Sprint A — supported static-page slugs
@@ -128,6 +130,7 @@ function Footer() {
 function Navbar({ view, setView }) {
   const { user, logout } = useAuth();
   const isAdmin = user?.role === "admin";
+  const { t } = useTranslation();
 
   return (
     <header className="navbar">
@@ -151,7 +154,7 @@ function Navbar({ view, setView }) {
                     : "")
                 }
               >
-                {it.label}
+                {t(it.tKey)}{it.emoji ? ` ${it.emoji}` : ""}
               </button>
             ))}
             {isAdmin && (
@@ -162,7 +165,7 @@ function Navbar({ view, setView }) {
                 }
                 style={{ color: "var(--rose)" }}
               >
-                Admin
+                {t("nav.admin")}
               </button>
             )}
           </nav>
@@ -171,6 +174,7 @@ function Navbar({ view, setView }) {
         <span className="nav-spacer" />
 
         <ThemeToggle />
+        <LangToggle />
 
         {user ? (
           <>
@@ -185,12 +189,12 @@ function Navbar({ view, setView }) {
               <span style={{ marginLeft: 6 }}>{user.name?.split(" ")[0]}</span>
             </button>
             <button onClick={logout} className="btn btn-secondary btn-sm">
-              Logout
+              {t("nav.logout")}
             </button>
           </>
         ) : (
           <button onClick={() => setView("login")} className="btn btn-primary btn-sm">
-            Login
+            {t("nav.login")}
           </button>
         )}
       </div>
@@ -337,13 +341,15 @@ function MainApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <ScrollProgress />
-        <MainApp />
-        <CompareBar />
-        <Onboarding />
-      </ToastProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <ScrollProgress />
+          <MainApp />
+          <CompareBar />
+          <Onboarding />
+        </ToastProvider>
+      </AuthProvider>
+    </I18nProvider>
   );
 }

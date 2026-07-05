@@ -1,0 +1,19 @@
+{
+  "name": "KatherBox — Plants, planters & care",
+  "short_name": "KatherBox",
+  "description": "Hand-curated plants, handcrafted planters and gentle care essentials — delivered in Dhaka and beyond.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fafaf6",
+  "theme_color": "#5e8b56",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
