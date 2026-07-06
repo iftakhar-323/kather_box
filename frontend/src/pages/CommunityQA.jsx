@@ -9,6 +9,7 @@ import {
 // names above match the actual API module
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function fmtDate(s) {
   if (!s) return "";
@@ -23,6 +24,7 @@ function fmtDate(s) {
 }
 
 export default function CommunityQA() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const toast = useToast();
   const [questions, setQuestions] = useState([]);
@@ -41,7 +43,6 @@ export default function CommunityQA() {
     setLoading(true);
     Promise.all([getQuestions(), getLeaderboard("points")])
       .then(([q, l]) => {
-        // backend returns {questions, total} or {items}
         const qs = q.data?.questions || q.data?.items || [];
         setQuestions(qs);
         setLeaderboard(l.data?.leaderboard || l.data?.items || []);
@@ -64,10 +65,10 @@ export default function CommunityQA() {
         product_id: qProductId ? Number(qProductId) : null,
         tags: qTags
           .split(",")
-          .map((t) => t.trim())
+          .map((x) => x.trim())
           .filter(Boolean),
       });
-      toast.ok("Question posted");
+      toast.ok(t("community.qa.questionPosted"));
       setQTitle("");
       setQBody("");
       setQProductId("");
@@ -84,9 +85,8 @@ export default function CommunityQA() {
     if (!aBody.trim() || !activeQ) return;
     try {
       await answerQuestion(activeQ.id, aBody.trim());
-      toast.ok("Answer posted");
+      toast.ok(t("community.qa.answerPosted"));
       setABody("");
-      // refresh active question
       const r = await getQuestions();
       const updated = (r.data?.questions || r.data?.items || []).find(
         (q) => q.id === activeQ.id
@@ -112,10 +112,9 @@ export default function CommunityQA() {
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: 8 }}>💡 Community Q&A & Leaderboard</h1>
+      <h1 style={{ marginBottom: 8 }}>{t("community.qa.heading")}</h1>
       <p className="muted" style={{ marginBottom: 16 }}>
-        Ask anything about plant care — answer others to climb the leaderboard
-        and earn Green Points.
+        {t("community.qa.subhead")}
       </p>
 
       <div className="row gap-8" style={{ marginBottom: 16 }}>
@@ -123,13 +122,13 @@ export default function CommunityQA() {
           className={"btn btn-sm " + (tab === "qa" ? "btn-primary" : "btn-secondary")}
           onClick={() => setTab("qa")}
         >
-          💡 Questions
+          {t("community.qa.tabQuestions")}
         </button>
         <button
           className={"btn btn-sm " + (tab === "leaderboard" ? "btn-primary" : "btn-secondary")}
           onClick={() => setTab("leaderboard")}
         >
-          🏆 Leaderboard
+          {t("community.qa.tabLeaderboard")}
         </button>
         {user && tab === "qa" && (
           <>
@@ -138,7 +137,7 @@ export default function CommunityQA() {
               className="btn btn-primary btn-sm"
               onClick={() => setAskOpen((s) => !s)}
             >
-              {askOpen ? "Cancel" : "➕ Ask a question"}
+              {askOpen ? t("community.qa.cancel") : t("community.qa.askOpen")}
             </button>
           </>
         )}
@@ -146,10 +145,10 @@ export default function CommunityQA() {
 
       {askOpen && (
         <form onSubmit={onAsk} className="card card-pad-lg mb-16">
-          <h3 style={{ marginTop: 0 }}>New question</h3>
+          <h3 style={{ marginTop: 0 }}>{t("community.qa.askTitle")}</h3>
           <input
             className="input"
-            placeholder="Title — e.g. Why are my fiddle-leaf fig leaves yellow?"
+            placeholder={t("community.qa.titlePlaceholder")}
             value={qTitle}
             onChange={(e) => setQTitle(e.target.value)}
             required
@@ -157,7 +156,7 @@ export default function CommunityQA() {
           <textarea
             className="input mt-8"
             rows={4}
-            placeholder="Add details, watering schedule, light conditions…"
+            placeholder={t("community.qa.bodyPlaceholder")}
             value={qBody}
             onChange={(e) => setQBody(e.target.value)}
             style={{ resize: "vertical" }}
@@ -165,7 +164,7 @@ export default function CommunityQA() {
           <div className="row mt-8" style={{ gap: 8 }}>
             <input
               className="input"
-              placeholder="Related product ID (optional)"
+              placeholder={t("community.qa.productIdPlaceholder")}
               value={qProductId}
               onChange={(e) => setQProductId(e.target.value)}
               style={{ width: 200 }}
@@ -173,14 +172,14 @@ export default function CommunityQA() {
             />
             <input
               className="input"
-              placeholder="Tags (comma-separated)"
+              placeholder={t("community.qa.tagsPlaceholder")}
               value={qTags}
               onChange={(e) => setQTags(e.target.value)}
               style={{ flex: 1 }}
             />
           </div>
           <button className="btn btn-primary mt-8" type="submit">
-            Post question
+            {t("community.qa.submitQuestion")}
           </button>
         </form>
       )}
@@ -191,13 +190,13 @@ export default function CommunityQA() {
             {loading ? (
               <div className="empty">
                 <div className="emoji">⏳</div>
-                <h3>Loading…</h3>
+                <h3>{t("community.qa.loading")}</h3>
               </div>
             ) : questions.length === 0 ? (
               <div className="empty">
                 <div className="emoji">💭</div>
-                <h3>No questions yet</h3>
-                <p className="muted">Be the first to ask!</p>
+                <h3>{t("community.qa.noQuestionsHeading")}</h3>
+                <p className="muted">{t("community.qa.noQuestionsBody")}</p>
               </div>
             ) : (
               <div>
@@ -209,14 +208,25 @@ export default function CommunityQA() {
                     onClick={() => setActiveQ(q)}
                   >
                     <h4 style={{ margin: 0 }}>{q.title}</h4>
-                    <div className="row muted" style={{ fontSize: 12, marginTop: 6, gap: 8 }}>
-                      <span>by {q.author_name || "Anonymous"}</span>
+                    <div
+                      className="row muted"
+                      style={{ fontSize: 12, marginTop: 6, gap: 8 }}
+                    >
+                      <span>
+                        {t("community.qa.by", {
+                          name: q.author_name || t("community.qa.anonymous"),
+                        })}
+                      </span>
                       <span>·</span>
                       <span>{fmtDate(q.created_at)}</span>
                       {q.product_id && (
                         <>
                           <span>·</span>
-                          <span>📦 product #{q.product_id}</span>
+                          <span>
+                            {t("community.qa.productRef", {
+                              id: q.product_id,
+                            })}
+                          </span>
                         </>
                       )}
                       {q.status && q.status !== "open" && (
@@ -224,15 +234,26 @@ export default function CommunityQA() {
                       )}
                     </div>
                     {(q.tags || []).length > 0 && (
-                      <div className="row gap-4 mt-8" style={{ flexWrap: "wrap" }}>
-                        {q.tags.map((t) => (
-                          <span key={t} className="tag">#{t}</span>
+                      <div
+                        className="row gap-4 mt-8"
+                        style={{ flexWrap: "wrap" }}
+                      >
+                        {q.tags.map((tg) => (
+                          <span key={tg} className="tag">#{tg}</span>
                         ))}
                       </div>
                     )}
-                    <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>
-                      {(q.answer_count || 0)} answer
-                      {(q.answer_count || 0) === 1 ? "" : "s"}
+                    <div
+                      className="muted"
+                      style={{ fontSize: 13, marginTop: 8 }}
+                    >
+                      {(q.answer_count || 0) === 1
+                        ? t("community.qa.answerCount", {
+                            count: q.answer_count || 0,
+                          })
+                        : t("community.qa.answerCountPlural", {
+                            count: q.answer_count || 0,
+                          })}
                     </div>
                   </div>
                 ))}
@@ -242,22 +263,27 @@ export default function CommunityQA() {
 
           <div style={{ flex: 1, minWidth: 280 }}>
             {activeQ ? (
-              <div className="card card-pad-lg" style={{ position: "sticky", top: 16 }}>
+              <div
+                className="card card-pad-lg"
+                style={{ position: "sticky", top: 16 }}
+              >
                 <button
                   className="btn btn-ghost btn-xs"
                   onClick={() => setActiveQ(null)}
                 >
-                  ← Back to list
+                  {t("community.qa.backToList")}
                 </button>
                 <h3 style={{ margin: "8px 0" }}>{activeQ.title}</h3>
                 {activeQ.body && (
                   <p style={{ whiteSpace: "pre-wrap" }}>{activeQ.body}</p>
                 )}
                 <h4 style={{ marginTop: 16 }}>
-                  Answers ({(activeQ.answers || []).length})
+                  {t("community.qa.answersHeading", {
+                    count: (activeQ.answers || []).length,
+                  })}
                 </h4>
                 {(activeQ.answers || []).length === 0 && (
-                  <p className="muted">No answers yet — be the first.</p>
+                  <p className="muted">{t("community.qa.noAnswers")}</p>
                 )}
                 {(activeQ.answers || []).map((a) => (
                   <div
@@ -268,7 +294,10 @@ export default function CommunityQA() {
                     <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{a.body}</p>
                     <div className="row mt-8" style={{ fontSize: 12 }}>
                       <span className="muted">
-                        by {a.author_name || "Anonymous"} · {fmtDate(a.created_at)}
+                        {t("community.qa.answerAuthor", {
+                          name: a.author_name || t("community.qa.anonymous"),
+                        })}{" "}
+                        · {fmtDate(a.created_at)}
                       </span>
                       <span className="spacer" />
                       <button
@@ -285,7 +314,7 @@ export default function CommunityQA() {
                     <textarea
                       className="input"
                       rows={3}
-                      placeholder="Your answer…"
+                      placeholder={t("community.qa.answerPlaceholder")}
                       value={aBody}
                       onChange={(e) => setABody(e.target.value)}
                       style={{ resize: "vertical" }}
@@ -294,19 +323,29 @@ export default function CommunityQA() {
                       className="btn btn-primary btn-sm mt-8"
                       disabled={!aBody.trim()}
                     >
-                      Post answer
+                      {t("community.qa.postAnswer")}
                     </button>
                   </form>
                 )}
               </div>
             ) : (
               <div className="card card-pad-lg muted">
-                <h4 style={{ marginTop: 0 }}>🏆 Top helpers this week</h4>
+                <h4 style={{ marginTop: 0 }}>
+                  {t("community.qa.topHelpersTitle")}
+                </h4>
                 {(leaderboard || []).slice(0, 5).map((u, i) => (
-                  <div key={u.user_id || i} className="row" style={{ padding: "6px 0" }}>
+                  <div
+                    key={u.user_id || i}
+                    className="row"
+                    style={{ padding: "6px 0" }}
+                  >
                     <span style={{ width: 24, fontWeight: 700 }}>#{i + 1}</span>
-                    <span style={{ flex: 1 }}>{u.name || "Anonymous"}</span>
-                    <strong>{u.points || 0} pts</strong>
+                    <span style={{ flex: 1 }}>
+                      {u.name || t("community.qa.anonymous")}
+                    </span>
+                    <strong>
+                      {t("community.qa.pts", { n: u.points || 0 })}
+                    </strong>
                   </div>
                 ))}
               </div>
@@ -323,21 +362,23 @@ export default function CommunityQA() {
           <table className="table" style={{ width: "100%" }}>
             <thead>
               <tr>
-                <th style={{ width: 60 }}>Rank</th>
-                <th>Helper</th>
-                <th>Points</th>
-                <th>Answers</th>
+                <th style={{ width: 60 }}>{t("community.qa.rank")}</th>
+                <th>{t("community.qa.helper")}</th>
+                <th>{t("community.qa.points")}</th>
+                <th>{t("community.qa.answers")}</th>
               </tr>
             </thead>
             <tbody>
               {(leaderboard || []).map((u, i) => (
                 <tr key={u.user_id || i}>
                   <td>
-                    <strong style={{ color: i < 3 ? "var(--leaf-700)" : undefined }}>
+                    <strong
+                      style={{ color: i < 3 ? "var(--leaf-700)" : undefined }}
+                    >
                       #{i + 1}
                     </strong>
                   </td>
-                  <td>{u.name || "Anonymous"}</td>
+                  <td>{u.name || t("community.qa.anonymous")}</td>
                   <td>{u.points || 0}</td>
                   <td>{u.answer_count || 0}</td>
                 </tr>

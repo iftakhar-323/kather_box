@@ -8,17 +8,12 @@ import {
   toggleLike,
   deletePost,
 } from "../api/community";
+import { useTranslation } from "../i18n/I18nProvider";
 
-const CATS = [
-  { v: "show-off", l: "🌿 Show off" },
-  { v: "tip", l: "💡 Tip" },
-  { v: "question", l: "❓ Question" },
-  { v: "story", l: "📖 Story" },
-];
-
-const CAT_EMOJI = { "show-off": "🌿", tip: "💡", question: "❓", story: "📖" };
+const CATS = ["show-off", "tip", "question", "story"];
 
 export default function Community() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [expanded, setExpanded] = useState(null);
@@ -60,11 +55,11 @@ export default function Community() {
   };
 
   const openPost = (p) => {
-    const same = expanded === p.ID;
-    setExpanded(same ? null : p.ID);
-    if (!same && !commentsByPost[p.ID]) {
-      listComments(p.ID).then((r) => {
-        setCommentsByPost((m) => ({ ...m, [p.ID]: r.data || [] }));
+    const same = expanded === p.id;
+    setExpanded(same ? null : p.id);
+    if (!same && !commentsByPost[p.id]) {
+      listComments(p.id).then((r) => {
+        setCommentsByPost((m) => ({ ...m, [p.id]: r.data || [] }));
       });
     }
   };
@@ -88,11 +83,13 @@ export default function Community() {
     try {
       await toggleLike(postId);
       reload();
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   };
 
   const remove = async (postId) => {
-    if (!window.confirm("Delete this post?")) return;
+    if (!window.confirm(t("community.feed.deleteConfirm"))) return;
     await deletePost(postId);
     reload();
   };
@@ -101,21 +98,27 @@ export default function Community() {
     ? posts.filter((p) => p.category === catFilter)
     : posts;
 
+  const catLabel = (slug) => {
+    const key = "community.cats." + slug;
+    return t(key) !== key ? t(key) : slug;
+  };
+
   return (
     <div>
-      <div className="row-between" style={{ alignItems: "flex-start", marginBottom: 16 }}>
+      <div
+        className="row-between"
+        style={{ alignItems: "flex-start", marginBottom: 16 }}
+      >
         <div>
-          <h1 style={{ marginBottom: 6 }}>Community 🌱</h1>
-          <p className="muted">
-            Share plant stories, tips and questions with other plant lovers.
-          </p>
+          <h1 style={{ marginBottom: 6 }}>{t("community.feed.heading")}</h1>
+          <p className="muted">{t("community.feed.subhead")}</p>
         </div>
         {user && (
           <button
             className="btn btn-primary"
             onClick={() => setShowNew((s) => !s)}
           >
-            {showNew ? "Close" : "+ New post"}
+            {showNew ? t("community.feed.close") : t("community.feed.newPostOpen")}
           </button>
         )}
       </div>
@@ -124,30 +127,59 @@ export default function Community() {
 
       {showNew && (
         <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-          <h3 style={{ marginTop: 0 }}>New post</h3>
+          <h3 style={{ marginTop: 0 }}>{t("community.feed.newPostTitle")}</h3>
           <form className="auth-form" onSubmit={submitPost}>
             <div>
-              <label className="field-label">Category</label>
-              <select className="select" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <label className="field-label">
+                {t("community.feed.fieldCategory")}
+              </label>
+              <select
+                className="select"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
                 {CATS.map((c) => (
-                  <option key={c.v} value={c.v}>{c.l}</option>
+                  <option key={c} value={c}>
+                    {catLabel(c)}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="field-label">Title</label>
-              <input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} />
+              <label className="field-label">
+                {t("community.feed.fieldTitle")}
+              </label>
+              <input
+                className="input"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </div>
             <div>
-              <label className="field-label">Body</label>
-              <textarea className="textarea" required value={body} onChange={(e) => setBody(e.target.value)} />
+              <label className="field-label">
+                {t("community.feed.fieldBody")}
+              </label>
+              <textarea
+                className="textarea"
+                required
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+              />
             </div>
             <div>
-              <label className="field-label">Image URL (optional)</label>
-              <input className="input" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…" />
+              <label className="field-label">
+                {t("community.feed.fieldImage")}
+              </label>
+              <input
+                className="input"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder={t("community.feed.imagePlaceholder")}
+              />
             </div>
             <button type="submit" disabled={busy} className="btn btn-primary">
-              {busy ? "Posting…" : "Post"}
+              {busy ? t("community.feed.posting") : t("community.feed.post")}
             </button>
           </form>
         </div>
@@ -157,48 +189,68 @@ export default function Community() {
         <button
           className={"btn btn-sm " + (!catFilter ? "btn-primary" : "btn-secondary")}
           onClick={() => setCatFilter("")}
-        >All</button>
+        >
+          {t("community.feed.all")}
+        </button>
         {CATS.map((c) => (
           <button
-            key={c.v}
-            className={"btn btn-sm " + (catFilter === c.v ? "btn-primary" : "btn-secondary")}
-            onClick={() => setCatFilter(c.v)}
-          >{c.l}</button>
+            key={c}
+            className={
+              "btn btn-sm " + (catFilter === c ? "btn-primary" : "btn-secondary")
+            }
+            onClick={() => setCatFilter(c)}
+          >
+            {catLabel(c)}
+          </button>
         ))}
       </div>
 
       {!user && (
         <div className="empty">
           <div className="emoji">🔒</div>
-          <h3>Log in to join</h3>
-          <p>Browsing is open to everyone. Log in to post, like and comment.</p>
+          <h3>{t("community.feed.loginToJoin")}</h3>
+          <p>{t("community.feed.loginBody")}</p>
         </div>
       )}
 
       {filtered.length === 0 && (
         <div className="empty">
           <div className="emoji">📭</div>
-          <h3>No posts yet</h3>
-          <p>Be the first to share something.</p>
+          <h3>{t("community.feed.noPostsHeading")}</h3>
+          <p>{t("community.feed.noPostsBody")}</p>
         </div>
       )}
 
       {filtered.map((p) => {
-        const isOpen = expanded === p.ID;
-        const comments = commentsByPost[p.ID] || [];
+        const isOpen = expanded === p.id;
+        const comments = commentsByPost[p.id] || [];
         return (
-          <div key={p.ID} className="card" style={{ padding: 0, marginBottom: 12 }}>
+          <div key={p.id} className="card" style={{ padding: 0, marginBottom: 12 }}>
             <div style={{ padding: 16 }}>
               <div className="row-between" style={{ alignItems: "flex-start" }}>
-                <div style={{ flex: 1, cursor: "pointer" }} onClick={() => openPost(p)}>
-                  <div className="muted" style={{ fontSize: 13, marginBottom: 4 }}>
-                    {CAT_EMOJI[p.category] || "🌿"} {p.author || "anonymous"} •{" "}
+                <div
+                  style={{ flex: 1, cursor: "pointer" }}
+                  onClick={() => openPost(p)}
+                >
+                  <div
+                    className="muted"
+                    style={{ fontSize: 13, marginBottom: 4 }}
+                  >
+                    {catLabel(p.category)} {t("community.feed.by", {
+                      name: p.author || t("community.feed.anonymous"),
+                    })}{" "}
+                    •{" "}
                     {new Date(p.created_at).toLocaleDateString()}
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 600 }}>{p.title}</div>
                 </div>
                 {(user?.id === p.user_id || user?.role === "admin") && (
-                  <button onClick={() => remove(p.ID)} className="btn btn-ghost btn-sm">🗑</button>
+                  <button
+                    onClick={() => remove(p.id)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    🗑
+                  </button>
                 )}
               </div>
 
@@ -213,33 +265,54 @@ export default function Community() {
                     borderRadius: 12,
                     margin: "12px 0",
                   }}
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
               )}
 
-              <div style={{ whiteSpace: "pre-wrap", marginBottom: 12 }}>{p.body}</div>
-
+              <div style={{ whiteSpace: "pre-wrap", marginBottom: 12 }}>
+                {p.body}
+              </div>
               <div className="row gap-12" style={{ alignItems: "center" }}>
                 <button
-                  className={"btn btn-sm " + (p.liked_by_me ? "btn-primary" : "btn-secondary")}
-                  onClick={() => like(p.ID)}
+                  className={
+                    "btn btn-sm " +
+                    (p.liked_by_me ? "btn-primary" : "btn-secondary")
+                  }
+                  onClick={() => like(p.id)}
                 >
                   {p.liked_by_me ? "♥" : "♡"} {p.like_count}
                 </button>
-                <button className="btn btn-sm btn-secondary" onClick={() => openPost(p)}>
-                  💬 {p.comment_count} {isOpen ? "hide" : "comments"}
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => openPost(p)}
+                >
+                  💬 {p.comment_count}{" "}
+                  {isOpen
+                    ? t("community.feed.commentsHide")
+                    : t("community.feed.commentsOpen")}
                 </button>
               </div>
             </div>
 
             {isOpen && (
-              <div style={{ padding: "0 16px 16px", borderTop: "1px solid var(--leaf-100)" }}>
+              <div
+                style={{
+                  padding: "0 16px 16px",
+                  borderTop: "1px solid var(--leaf-100)",
+                }}
+              >
                 {comments.length === 0 && (
-                  <p className="muted" style={{ marginTop: 12 }}>No comments yet.</p>
+                  <p className="muted" style={{ marginTop: 12 }}>
+                    {t("community.feed.noComments")}
+                  </p>
                 )}
                 {comments.map((c) => (
-                  <div key={c.ID} style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{c.author || "anonymous"}</div>
+                  <div key={c.id} style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>
+                      {c.author || t("community.feed.anonymous")}
+                    </div>
                     <div style={{ fontSize: 14 }}>{c.body}</div>
                   </div>
                 ))}
@@ -248,14 +321,20 @@ export default function Community() {
                     <input
                       className="input"
                       style={{ flex: 1 }}
-                      placeholder="Write a comment…"
-                      value={draftComments[p.ID] || ""}
+                      placeholder={t("community.feed.writeCommentPlaceholder")}
+                      value={draftComments[p.id] || ""}
                       onChange={(e) =>
-                        setDraftComments((d) => ({ ...d, [p.ID]: e.target.value }))
+                        setDraftComments((d) => ({
+                          ...d,
+                          [p.id]: e.target.value,
+                        }))
                       }
                     />
-                    <button className="btn btn-primary btn-sm" onClick={() => submitComment(p.ID)}>
-                      Send
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => submitComment(p.id)}
+                    >
+                      {t("community.feed.send")}
                     </button>
                   </div>
                 )}
