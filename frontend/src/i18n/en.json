@@ -499,7 +499,56 @@
     "calendar": "Care calendar",
     "soil": "Soil & repotting",
     "pests": "Pests & diseases",
-    "watering": "Watering"
+    "watering": "Watering",
+    "dashboard": {
+      "heading": "🌿 Plant Care Dashboard",
+      "subhead": "Track growth, log milestones, and never miss a watering day.",
+      "tabCalendar": "📅 Calendar",
+      "tabJournal": "📓 Growth Journal",
+      "tabSchedules": "⏰ Schedules",
+      "month": "Month:",
+      "taskCount": "{{count}} task scheduled",
+      "taskCountPlural": "{{count}} tasks scheduled",
+      "noTasksHeading": "No tasks this month",
+      "noTasksBody": "Add a schedule to get reminders.",
+      "done": "✓ Done",
+      "productFallback": "Product #{{id}}"
+    },
+    "journal": {
+      "formTitle": "Add journal entry",
+      "productId": "Product ID",
+      "note": "Note",
+      "notePlaceholder": "New leaf today! Soil feels dry…",
+      "emoji": "Emoji",
+      "heightCm": "Height (cm)",
+      "submit": "Add entry",
+      "loading": "Loading…",
+      "empty": "No entries yet",
+      "added": "Journal entry added",
+      "deleted": "Removed",
+      "heightSuffix": "{{cm}}cm tall"
+    },
+    "schedules": {
+      "formTitle": "New care schedule",
+      "productId": "Product ID",
+      "task": "Task",
+      "everyDays": "Every (days)",
+      "submit": "Create schedule",
+      "empty": "No schedules yet",
+      "created": "Schedule created",
+      "deleted": "Schedule removed",
+      "everyDay": "Every {{n}} day",
+      "everyDays": "Every {{n}} days",
+      "next": "next:"
+    },
+    "tasks": {
+      "water": "💧 Water",
+      "fertilize": "🌾 Fertilize",
+      "repot": "🪴 Repot",
+      "prune": "✂️ Prune",
+      "mist": "💦 Mist",
+      "rotate": "🔄 Rotate"
+    }
   },
   "blog": {
     "title": "Journal",

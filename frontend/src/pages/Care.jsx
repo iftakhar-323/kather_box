@@ -9,6 +9,7 @@ import {
   getCareCalendar,
 } from "../api/care";
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function fmtDate(s) {
   if (!s) return "";
@@ -23,16 +24,10 @@ function fmtDate(s) {
   }
 }
 
-const TASK_TYPES = [
-  { value: "water", label: "💧 Water" },
-  { value: "fertilize", label: "🌾 Fertilize" },
-  { value: "repot", label: "🪴 Repot" },
-  { value: "prune", label: "✂️ Prune" },
-  { value: "mist", label: "💦 Mist" },
-  { value: "rotate", label: "🔄 Rotate" },
-];
+const TASK_VALUES = ["water", "fertilize", "repot", "prune", "mist", "rotate"];
 
 export default function Care() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [tab, setTab] = useState("dashboard");
   const [journal, setJournal] = useState([]);
@@ -88,7 +83,7 @@ export default function Care() {
         photo_emoji: jPhoto,
         height_cm: jHeight ? Number(jHeight) : null,
       });
-      toast.ok("Journal entry added");
+      toast.ok(t("care.journal.added"));
       setJNote("");
       setJHeight("");
       loadAll();
@@ -109,7 +104,7 @@ export default function Care() {
           .toISOString()
           .slice(0, 10),
       });
-      toast.ok("Schedule created");
+      toast.ok(t("care.schedules.created"));
       setSProduct("");
       loadAll();
     } catch (e) {
@@ -120,7 +115,7 @@ export default function Care() {
   const onDeleteJournal = async (id) => {
     try {
       await deleteJournalEntry(id);
-      toast.ok("Removed");
+      toast.ok(t("care.journal.deleted"));
       loadAll();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -130,18 +125,23 @@ export default function Care() {
   const onDeleteSchedule = async (id) => {
     try {
       await deleteSchedule(id);
-      toast.ok("Schedule removed");
+      toast.ok(t("care.schedules.deleted"));
       loadAll();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
     }
   };
 
+  const taskLabel = (value) => {
+    const key = "care.tasks." + value;
+    return t(key) !== key ? t(key) : value;
+  };
+
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: 8 }}>🌿 Plant Care Dashboard</h1>
+      <h1 style={{ marginBottom: 8 }}>{t("care.dashboard.heading")}</h1>
       <p className="muted" style={{ marginBottom: 16 }}>
-        Track growth, log milestones, and never miss a watering day.
+        {t("care.dashboard.subhead")}
       </p>
 
       <div className="row gap-8" style={{ marginBottom: 16 }}>
@@ -149,26 +149,26 @@ export default function Care() {
           className={"btn btn-sm " + (tab === "dashboard" ? "btn-primary" : "btn-secondary")}
           onClick={() => setTab("dashboard")}
         >
-          📅 Calendar
+          {t("care.dashboard.tabCalendar")}
         </button>
         <button
           className={"btn btn-sm " + (tab === "journal" ? "btn-primary" : "btn-secondary")}
           onClick={() => setTab("journal")}
         >
-          📓 Growth Journal
+          {t("care.dashboard.tabJournal")}
         </button>
         <button
           className={"btn btn-sm " + (tab === "schedules" ? "btn-primary" : "btn-secondary")}
           onClick={() => setTab("schedules")}
         >
-          ⏰ Schedules
+          {t("care.dashboard.tabSchedules")}
         </button>
       </div>
 
       {tab === "dashboard" && (
         <div>
           <div className="row mb-16" style={{ gap: 8 }}>
-            <label className="muted">Month:</label>
+            <label className="muted">{t("care.dashboard.month")}</label>
             <input
               type="month"
               className="input"
@@ -178,7 +178,13 @@ export default function Care() {
             />
             <span className="spacer" />
             <span className="muted">
-              {(calendar || []).length} task{(calendar || []).length === 1 ? "" : "s"} scheduled
+              {(calendar || []).length === 1
+                ? t("care.dashboard.taskCount", {
+                    count: (calendar || []).length,
+                  })
+                : t("care.dashboard.taskCountPlural", {
+                    count: (calendar || []).length,
+                  })}
             </span>
           </div>
           <div
@@ -191,26 +197,27 @@ export default function Care() {
             {(calendar || []).length === 0 && (
               <div className="empty" style={{ gridColumn: "1/-1" }}>
                 <div className="emoji">🌤</div>
-                <h3>No tasks this month</h3>
-                <p className="muted">Add a schedule to get reminders.</p>
+                <h3>{t("care.dashboard.noTasksHeading")}</h3>
+                <p className="muted">{t("care.dashboard.noTasksBody")}</p>
               </div>
             )}
             {(calendar || []).map((c, i) => {
-              const t = TASK_TYPES.find((x) => x.value === c.task_type) || {
-                label: c.task_type,
-              };
+              const label = taskLabel(c.task_type);
               return (
                 <div key={i} className="card card-pad">
                   <div className="row">
-                    <span style={{ fontSize: 28 }}>{t.label.split(" ")[0]}</span>
+                    <span style={{ fontSize: 28 }}>{label.split(" ")[0]}</span>
                     <span className="spacer" />
                     <span className="muted">{fmtDate(c.due_date)}</span>
                   </div>
-                  <h4 style={{ margin: "8px 0 4px" }}>{c.product_name || `Product #${c.product_id}`}</h4>
-                  <span className="tag tag-leaf">{t.label}</span>
+                  <h4 style={{ margin: "8px 0 4px" }}>
+                    {c.product_name ||
+                      t("care.dashboard.productFallback", { id: c.product_id })}
+                  </h4>
+                  <span className="tag tag-leaf">{label}</span>
                   {c.done && (
                     <span className="tag tag-success" style={{ marginLeft: 6 }}>
-                      ✓ Done
+                      {t("care.dashboard.done")}
                     </span>
                   )}
                 </div>
@@ -222,9 +229,13 @@ export default function Care() {
 
       {tab === "journal" && (
         <div className="row" style={{ alignItems: "flex-start", gap: 16 }}>
-          <form onSubmit={onAddJournal} className="card card-pad-lg" style={{ flex: 1, minWidth: 280 }}>
-            <h3 style={{ marginTop: 0 }}>Add journal entry</h3>
-            <label className="field-label">Product ID</label>
+          <form
+            onSubmit={onAddJournal}
+            className="card card-pad-lg"
+            style={{ flex: 1, minWidth: 280 }}
+          >
+            <h3 style={{ marginTop: 0 }}>{t("care.journal.formTitle")}</h3>
+            <label className="field-label">{t("care.journal.productId")}</label>
             <input
               className="input"
               type="number"
@@ -232,19 +243,19 @@ export default function Care() {
               onChange={(e) => setJProduct(e.target.value)}
               required
             />
-            <label className="field-label mt-8">Note</label>
+            <label className="field-label mt-8">{t("care.journal.note")}</label>
             <textarea
               className="input"
               rows={3}
               value={jNote}
               onChange={(e) => setJNote(e.target.value)}
-              placeholder="New leaf today! Soil feels dry…"
+              placeholder={t("care.journal.notePlaceholder")}
               required
               style={{ resize: "vertical" }}
             />
             <div className="row mt-8" style={{ gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <label className="field-label">Emoji</label>
+                <label className="field-label">{t("care.journal.emoji")}</label>
                 <input
                   className="input"
                   value={jPhoto}
@@ -253,7 +264,7 @@ export default function Care() {
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label className="field-label">Height (cm)</label>
+                <label className="field-label">{t("care.journal.heightCm")}</label>
                 <input
                   className="input"
                   type="number"
@@ -263,7 +274,7 @@ export default function Care() {
               </div>
             </div>
             <button className="btn btn-primary mt-8" type="submit">
-              Add entry
+              {t("care.journal.submit")}
             </button>
           </form>
 
@@ -271,24 +282,38 @@ export default function Care() {
             {loading ? (
               <div className="empty">
                 <div className="emoji">⏳</div>
-                <h3>Loading…</h3>
+                <h3>{t("care.journal.loading")}</h3>
               </div>
             ) : journal.length === 0 ? (
               <div className="empty">
                 <div className="emoji">📓</div>
-                <h3>No entries yet</h3>
+                <h3>{t("care.journal.empty")}</h3>
               </div>
             ) : (
               <div>
                 {journal.map((j) => (
-                  <div key={j.id} className="card card-pad" style={{ marginBottom: 8 }}>
+                  <div
+                    key={j.id}
+                    className="card card-pad"
+                    style={{ marginBottom: 8 }}
+                  >
                     <div className="row">
                       <span style={{ fontSize: 32 }}>{j.photo_emoji || "🌿"}</span>
                       <div style={{ flex: 1, marginLeft: 12 }}>
-                        <strong>{j.product_name || `Product #${j.product_id}`}</strong>
+                        <strong>
+                          {j.product_name ||
+                            t("care.dashboard.productFallback", {
+                              id: j.product_id,
+                            })}
+                        </strong>
                         <div className="muted" style={{ fontSize: 12 }}>
                           {fmtDate(j.created_at)}
-                          {j.height_cm ? ` · ${j.height_cm}cm tall` : ""}
+                          {j.height_cm
+                            ? " · " +
+                              t("care.journal.heightSuffix", {
+                                cm: j.height_cm,
+                              })
+                            : ""}
                         </div>
                       </div>
                       <button
@@ -309,9 +334,13 @@ export default function Care() {
 
       {tab === "schedules" && (
         <div className="row" style={{ alignItems: "flex-start", gap: 16 }}>
-          <form onSubmit={onAddSchedule} className="card card-pad-lg" style={{ flex: 1, minWidth: 280 }}>
-            <h3 style={{ marginTop: 0 }}>New care schedule</h3>
-            <label className="field-label">Product ID</label>
+          <form
+            onSubmit={onAddSchedule}
+            className="card card-pad-lg"
+            style={{ flex: 1, minWidth: 280 }}
+          >
+            <h3 style={{ marginTop: 0 }}>{t("care.schedules.formTitle")}</h3>
+            <label className="field-label">{t("care.schedules.productId")}</label>
             <input
               className="input"
               type="number"
@@ -319,19 +348,21 @@ export default function Care() {
               onChange={(e) => setSProduct(e.target.value)}
               required
             />
-            <label className="field-label mt-8">Task</label>
+            <label className="field-label mt-8">{t("care.schedules.task")}</label>
             <select
               className="input"
               value={sType}
               onChange={(e) => setSType(e.target.value)}
             >
-              {TASK_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              {TASK_VALUES.map((v) => (
+                <option key={v} value={v}>
+                  {taskLabel(v)}
                 </option>
               ))}
             </select>
-            <label className="field-label mt-8">Every (days)</label>
+            <label className="field-label mt-8">
+              {t("care.schedules.everyDays")}
+            </label>
             <input
               className="input"
               type="number"
@@ -340,7 +371,7 @@ export default function Care() {
               onChange={(e) => setSEvery(e.target.value)}
             />
             <button className="btn btn-primary mt-8" type="submit">
-              Create schedule
+              {t("care.schedules.submit")}
             </button>
           </form>
 
@@ -348,26 +379,32 @@ export default function Care() {
             {schedules.length === 0 ? (
               <div className="empty">
                 <div className="emoji">⏰</div>
-                <h3>No schedules yet</h3>
+                <h3>{t("care.schedules.empty")}</h3>
               </div>
             ) : (
               <div>
                 {schedules.map((s) => {
-                  const t = TASK_TYPES.find((x) => x.value === s.task_type) || {
-                    label: s.task_type,
-                  };
+                  const label = taskLabel(s.task_type);
                   return (
-                    <div key={s.id} className="card card-pad" style={{ marginBottom: 8 }}>
+                    <div
+                      key={s.id}
+                      className="card card-pad"
+                      style={{ marginBottom: 8 }}
+                    >
                       <div className="row">
-                        <span style={{ fontSize: 28 }}>{t.label.split(" ")[0]}</span>
+                        <span style={{ fontSize: 28 }}>{label.split(" ")[0]}</span>
                         <div style={{ flex: 1, marginLeft: 12 }}>
                           <strong>
-                            {s.product_name || `Product #${s.product_id}`}
+                            {s.product_name ||
+                              t("care.dashboard.productFallback", {
+                                id: s.product_id,
+                              })}
                           </strong>
                           <div className="muted" style={{ fontSize: 12 }}>
-                            Every {s.interval_days} day
-                            {s.interval_days === 1 ? "" : "s"} · next:{" "}
-                            {fmtDate(s.next_due)}
+                            {s.interval_days === 1
+                              ? t("care.schedules.everyDay", { n: s.interval_days })
+                              : t("care.schedules.everyDays", { n: s.interval_days })}{" "}
+                            · {t("care.schedules.next")} {fmtDate(s.next_due)}
                           </div>
                         </div>
                         <button
