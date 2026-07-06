@@ -4,6 +4,7 @@ import { getProduct } from "../api/products";
 import { addToCart } from "../api/cart";
 import { CompareStore, SaveForLaterStore, RecentStore } from "../utils/kb";
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function emojiFor(category) {
   if (category === "plant") return "🌿";
@@ -12,6 +13,7 @@ function emojiFor(category) {
 }
 
 export default function ProductDetail({ productId, onBack }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const toast = useToast();
   const [product, setProduct] = useState(null);
@@ -40,7 +42,7 @@ export default function ProductDetail({ productId, onBack }) {
     return (
       <div className="empty">
         <div className="emoji">🪴</div>
-        <h3>Loading product…</h3>
+        <h3>{t("productDetail.loading")}</h3>
       </div>
     );
   }
@@ -48,9 +50,9 @@ export default function ProductDetail({ productId, onBack }) {
     return (
       <div className="empty">
         <div className="emoji">🤔</div>
-        <h3>Product not found</h3>
+        <h3>{t("productDetail.notFound")}</h3>
         <button className="btn btn-secondary mt-16" onClick={onBack}>
-          ← Back to shop
+          {t("productDetail.backToShop")}
         </button>
       </div>
     );
@@ -58,7 +60,7 @@ export default function ProductDetail({ productId, onBack }) {
 
   const handleAdd = async () => {
     if (!user) {
-      const goLogin = window.confirm("Log in to add items to your cart?");
+      const goLogin = window.confirm(t("productDetail.loginPrompt"));
       if (goLogin) window.__katherboxSetView?.("login");
       return;
     }
@@ -76,19 +78,19 @@ export default function ProductDetail({ productId, onBack }) {
 
   const btnLabel =
     status === "loading"
-      ? "Adding…"
+      ? t("productDetail.btnAdding")
       : status === "added"
-      ? "Added to cart ✓"
+      ? t("productDetail.btnAdded")
       : status === "error"
-      ? "Failed"
-      : "Add to cart";
+      ? t("productDetail.btnFailed")
+      : t("productDetail.btnAdd");
 
   const stockOk = product.stock > 0;
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto" }}>
       <button onClick={onBack} className="btn btn-ghost mb-16">
-        ← Back to shop
+        {t("productDetail.backToShop")}
       </button>
 
       <div
@@ -150,9 +152,9 @@ export default function ProductDetail({ productId, onBack }) {
           >
             {stockOk
               ? product.stock < 5
-                ? `Only ${product.stock} left in stock`
-                : `In stock (${product.stock})`
-              : "Out of stock"}
+                ? t("productDetail.stockLow", { count: product.stock })
+                : t("productDetail.stockIn", { count: product.stock })
+              : t("productDetail.stockOut")}
           </div>
 
           <p
@@ -162,7 +164,7 @@ export default function ProductDetail({ productId, onBack }) {
               marginBottom: 20,
             }}
           >
-            {product.description || "No description provided."}
+            {product.description || t("productDetail.noDescription")}
           </p>
 
           <button
@@ -182,14 +184,14 @@ export default function ProductDetail({ productId, onBack }) {
               onClick={() => {
                 if (!product) return;
                 const r = CompareStore.toggle(product);
-                if (r === "full") { toast.err("Compare list is full (4 max)"); return; }
+                if (r === "full") { toast.err(t("productDetail.compareFullToast")); return; }
                 setInCompare(r);
                 window.dispatchEvent(new Event("kb:compare-changed"));
-                toast.ok(r ? "Added to compare" : "Removed from compare");
+                toast.ok(r ? t("productDetail.compareAddedToast") : t("productDetail.compareRemovedToast"));
               }}
-              title="Toggle compare"
+              title={t("productDetail.compareTitle")}
             >
-              {inCompare ? "✓ In compare" : "⚖ Compare"}
+              {inCompare ? t("productDetail.compareAdded") : t("productDetail.compareAdd")}
             </button>
             <button
               className="btn btn-secondary btn-sm"
@@ -198,17 +200,17 @@ export default function ProductDetail({ productId, onBack }) {
                 if (SaveForLaterStore.has(product.ID)) {
                   SaveForLaterStore.remove(product.ID);
                   setInSaved(false);
-                  toast.ok("Removed from saved-for-later");
+                  toast.ok(t("productDetail.saveRemovedToast"));
                 } else {
                   SaveForLaterStore.add(product);
                   setInSaved(true);
-                  toast.ok("Saved for later 🔖");
+                  toast.ok(t("productDetail.saveAddedToast"));
                 }
                 window.dispatchEvent(new Event("kb:save-changed"));
               }}
-              title="Save for later"
+              title={t("productDetail.saveTitle")}
             >
-              {inSaved ? "✓ Saved for later" : "🔖 Save for later"}
+              {inSaved ? t("productDetail.saveAdded") : t("productDetail.saveAdd")}
             </button>
             <button
               className="btn btn-ghost btn-sm"
@@ -219,14 +221,14 @@ export default function ProductDetail({ productId, onBack }) {
                   navigator.share({ title: product.name, text: product.description, url }).catch(() => {});
                 } else if (navigator.clipboard) {
                   navigator.clipboard.writeText(url);
-                  toast.ok("Link copied to clipboard");
+                  toast.ok(t("productDetail.shareCopied"));
                 } else {
-                  toast.info(`Share this link: ${url}`);
+                  toast.info(t("productDetail.shareInfo", { url }));
                 }
               }}
-              title="Share"
+              title={t("productDetail.shareTitle")}
             >
-              🔗 Share
+              {t("productDetail.share")}
             </button>
           </div>
         </div>
