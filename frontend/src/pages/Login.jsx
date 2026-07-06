@@ -2,8 +2,10 @@ import { useState } from "react";
 import API from "../api/axios";
 import { loginUser } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "../i18n/I18nProvider";
 
 export default function Login({ onSwitch, onSuccess, onGoToForgot }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,7 +19,7 @@ export default function Login({ onSwitch, onSuccess, onGoToForgot }) {
       login(res.data.user, res.data.token);
       onSuccess();
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed");
+      setError(err.response?.data?.error || t("auth.loginFailed"));
     }
   };
 
@@ -25,28 +27,28 @@ export default function Login({ onSwitch, onSuccess, onGoToForgot }) {
     <div className="auth-card">
       <div className="brand">
         <span style={{ fontSize: 24 }}>🌿</span>
-        <span>KatherBox</span>
+        <span>{t("brand.name")}</span>
       </div>
-      <p className="subtitle">Welcome back — sign in to your account.</p>
+      <p className="subtitle">{t("auth.subtitleLogin")}</p>
 
       <form onSubmit={handleSubmit} className="auth-form">
         <div>
-          <label className="field-label">Email</label>
+          <label className="field-label">{t("auth.email")}</label>
           <input
             type="email"
             className="input"
-            placeholder="you@example.com"
+            placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
         </div>
         <div>
-          <label className="field-label">Password</label>
+          <label className="field-label">{t("auth.password")}</label>
           <input
             type="password"
             className="input"
-            placeholder="••••••••"
+            placeholder={t("auth.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -56,19 +58,19 @@ export default function Login({ onSwitch, onSuccess, onGoToForgot }) {
         {error && <p className="form-error">{error}</p>}
 
         <button type="submit" className="btn btn-primary btn-block btn-lg mt-8">
-          Sign in
+          {t("auth.loginButton")}
         </button>
       </form>
 
       <p className="auth-foot">
         <ForgotPasswordLink onGoToForgot={onGoToForgot} />
         <br />
-        <span className="muted">New to KatherBox?</span>{" "}
+        <span className="muted">{t("auth.noAccount")}</span>{" "}
         <a
           onClick={onSwitch}
           style={{ color: "var(--primary)", fontWeight: 600, cursor: "pointer" }}
         >
-          Create an account
+          {t("auth.switchToRegister")}
         </a>
       </p>
     </div>
@@ -76,6 +78,7 @@ export default function Login({ onSwitch, onSuccess, onGoToForgot }) {
 }
 
 function ForgotPasswordLink({ onGoToForgot }) {
+  const { t } = useTranslation();
   // If parent provides a router-style navigation, use the dedicated page.
   // Otherwise fall back to the original in-page modal (preserves existing UX).
   if (onGoToForgot) {
@@ -87,7 +90,7 @@ function ForgotPasswordLink({ onGoToForgot }) {
           onGoToForgot();
         }}
       >
-        Forgot password?
+        {t("auth.forgotPassword")}
       </a>
     );
   }
@@ -98,7 +101,7 @@ function ForgotPasswordLink({ onGoToForgot }) {
         style={{ color: "var(--primary)", cursor: "pointer", fontSize: 13 }}
         onClick={() => setOpen(true)}
       >
-        Forgot password?
+        {t("auth.forgotPassword")}
       </a>
 
       {open && <ForgotPasswordModal onClose={() => setOpen(false)} />}
@@ -107,6 +110,7 @@ function ForgotPasswordLink({ onGoToForgot }) {
 }
 
 function ForgotPasswordModal({ onClose }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -120,11 +124,11 @@ function ForgotPasswordModal({ onClose }) {
     setError("");
     try {
       const res = await API.post("/auth/forgot-password", { email });
-      setInfo(res.data.message || "If that email exists, a token was generated.");
+      setInfo(res.data.message || t("auth.forgotSent"));
       if (res.data.dev_only_token) setToken(res.data.dev_only_token);
       setStep(2);
     } catch (err) {
-      setError(err.response?.data?.error || "Could not request reset");
+      setError(err.response?.data?.error || t("auth.forgotRequestFailed"));
     }
   };
 
@@ -137,29 +141,27 @@ function ForgotPasswordModal({ onClose }) {
         token,
         new_password: newPw,
       });
-      setInfo(res.data.message || "Password reset — you can log in now.");
+      setInfo(res.data.message || t("auth.forgotDone"));
       setTimeout(onClose, 1500);
     } catch (err) {
-      setError(err.response?.data?.error || "Reset failed");
+      setError(err.response?.data?.error || t("auth.forgotResetFailed"));
     }
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Reset your password</h3>
-        <p className="form-note mb-16">
-          We'll generate a token (printed to server console in development).
-        </p>
+        <h3>{t("auth.forgotTitle")}</h3>
+        <p className="form-note mb-16">{t("auth.forgotSubtitle")}</p>
 
         {step === 1 && (
           <form onSubmit={requestReset} className="auth-form">
             <div>
-              <label className="field-label">Account email</label>
+              <label className="field-label">{t("auth.forgotAccountEmail")}</label>
               <input
                 type="email"
                 className="input"
-                placeholder="you@example.com"
+                placeholder={t("auth.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -177,11 +179,11 @@ function ForgotPasswordModal({ onClose }) {
                 className="btn btn-ghost"
                 onClick={onClose}
               >
-                Cancel
+                {t("actions.cancel")}
               </button>
               <span className="spacer" />
               <button type="submit" className="btn btn-primary">
-                Generate token
+                {t("auth.forgotGenerate")}
               </button>
             </div>
           </form>
@@ -190,21 +192,21 @@ function ForgotPasswordModal({ onClose }) {
         {step === 2 && (
           <form onSubmit={submitReset} className="auth-form">
             <div>
-              <label className="field-label">Token</label>
+              <label className="field-label">{t("auth.forgotTokenLabel")}</label>
               <input
                 className="input"
-                placeholder="Paste token"
+                placeholder={t("auth.forgotTokenPlaceholder")}
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 required
               />
             </div>
             <div>
-              <label className="field-label">New password</label>
+              <label className="field-label">{t("auth.forgotNewPassword")}</label>
               <input
                 type="password"
                 className="input"
-                placeholder="••••••••"
+                placeholder={t("auth.passwordPlaceholder")}
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
                 required
@@ -222,11 +224,11 @@ function ForgotPasswordModal({ onClose }) {
                 className="btn btn-ghost"
                 onClick={onClose}
               >
-                Cancel
+                {t("actions.cancel")}
               </button>
               <span className="spacer" />
               <button type="submit" className="btn btn-primary">
-                Reset password
+                {t("auth.forgotReset")}
               </button>
             </div>
           </form>
