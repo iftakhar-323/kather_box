@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getBlogPosts, getBlogCategories } from "../api/blog";
+import { useTranslation } from "../i18n/I18nProvider";
 // real names used; backend returns { posts, total, page }
 
 function fmtDate(s) {
@@ -16,6 +17,7 @@ function fmtDate(s) {
 }
 
 export default function Blog() {
+  const { t } = useTranslation();
   const [posts, setPosts] = useState([]);
   const [cats, setCats] = useState([]);
   const [cat, setCat] = useState("");
@@ -51,10 +53,9 @@ export default function Blog() {
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: 8 }}>📚 Blog & Care Guides</h1>
+      <h1 style={{ marginBottom: 8 }}>{t("blog.head")}</h1>
       <p className="muted" style={{ marginBottom: 24 }}>
-        Plant care tips, success stories and encyclopaedia entries from the
-        KatherBox community.
+        {t("blog.subhead")}
       </p>
 
       <div
@@ -63,7 +64,7 @@ export default function Blog() {
       >
         <input
           className="input"
-          placeholder="Search posts…"
+          placeholder={t("blog.searchPlaceholder")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -78,7 +79,7 @@ export default function Blog() {
             setPage(1);
           }}
         >
-          All
+          {t("blog.all")}
         </button>
         {cats.map((c) => (
           <button
@@ -99,13 +100,13 @@ export default function Blog() {
       {loading ? (
         <div className="empty">
           <div className="emoji">⏳</div>
-          <h3>Loading…</h3>
+          <h3>{t("blog.loading")}</h3>
         </div>
       ) : posts.length === 0 ? (
         <div className="empty">
           <div className="emoji">📭</div>
-          <h3>No posts yet</h3>
-          <p className="muted">Check back soon — new guides publish weekly.</p>
+          <h3>{t("blog.emptyHeading")}</h3>
+          <p className="muted">{t("blog.emptyBody")}</p>
         </div>
       ) : (
         <div
@@ -158,7 +159,7 @@ export default function Blog() {
                 >
                   <span>{fmtDate(p.published_at || p.created_at)}</span>
                   <span>·</span>
-                  <span>{p.read_min || 3} min read</span>
+                  <span>{t("blog.minRead", { n: p.read_min || 3 })}</span>
                 </div>
               </div>
             </article>
@@ -176,17 +177,17 @@ export default function Blog() {
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
           >
-            ← Prev
+            {t("blog.prev")}
           </button>
           <span className="muted">
-            Page {page} of {totalPages}
+            {t("blog.pageOf", { page, total: totalPages })}
           </span>
           <button
             className="btn btn-secondary btn-sm"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
-            Next →
+            {t("blog.nextBtn")}
           </button>
         </div>
       )}

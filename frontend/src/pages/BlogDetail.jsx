@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getBlogPost, addBlogComment } from "../api/blog";
 // real names used
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function fmtDate(s) {
   if (!s) return "";
@@ -17,6 +18,7 @@ function fmtDate(s) {
 }
 
 export default function BlogDetail({ slug, onBack }) {
+  const { t } = useTranslation();
   const toast = useToast();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,11 +50,11 @@ export default function BlogDetail({ slug, onBack }) {
     setBusy(true);
     try {
       await addBlogComment(post.id, { body: commentBody.trim() });
-      toast.ok("Comment posted");
+      toast.ok(t("blog.commentPosted"));
       setCommentBody("");
       load();
     } catch (e) {
-      toast.err(e?.response?.data?.error || "Failed to post");
+      toast.err(e?.response?.data?.error || t("blog.commentFailed"));
     } finally {
       setBusy(false);
     }
@@ -62,7 +64,7 @@ export default function BlogDetail({ slug, onBack }) {
     return (
       <div className="empty">
         <div className="emoji">⏳</div>
-        <h3>Loading article…</h3>
+        <h3>{t("blog.loadingPost")}</h3>
       </div>
     );
   if (error)
@@ -71,7 +73,7 @@ export default function BlogDetail({ slug, onBack }) {
         <div className="emoji">😕</div>
         <h3>{error}</h3>
         <button className="btn btn-secondary mt-16" onClick={onBack}>
-          ← Back to blog
+          {t("blog.backToBlog")}
         </button>
       </div>
     );
@@ -80,7 +82,7 @@ export default function BlogDetail({ slug, onBack }) {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto" }}>
       <button onClick={onBack} className="btn btn-ghost mb-16">
-        ← Back to blog
+        {t("blog.backToBlog")}
       </button>
 
       {post.category_name && (
@@ -90,11 +92,11 @@ export default function BlogDetail({ slug, onBack }) {
       <div className="row muted" style={{ gap: 8, margin: "8px 0 24px" }}>
         <span>{fmtDate(post.published_at || post.created_at)}</span>
         <span>·</span>
-        <span>{post.read_min || 3} min read</span>
+        <span>{t("blog.minRead", { n: post.read_min || 3 })}</span>
         {post.author_name && (
           <>
             <span>·</span>
-            <span>by {post.author_name}</span>
+            <span>{t("blog.by", { name: post.author_name })}</span>
           </>
         )}
       </div>
@@ -123,13 +125,13 @@ export default function BlogDetail({ slug, onBack }) {
       </article>
 
       <section className="mt-24">
-        <h2>💬 Comments ({(post.comments || []).length})</h2>
+        <h2>{t("blog.commentsHeading", { count: (post.comments || []).length })}</h2>
 
         <form onSubmit={onSubmitComment} className="card card-pad mt-16">
           <textarea
             className="input"
             rows={3}
-            placeholder="Share your thoughts…"
+            placeholder={t("blog.commentPlaceholder")}
             value={commentBody}
             onChange={(e) => setCommentBody(e.target.value)}
             style={{ resize: "vertical" }}
@@ -140,19 +142,23 @@ export default function BlogDetail({ slug, onBack }) {
               className="btn btn-primary"
               disabled={busy || !commentBody.trim()}
             >
-              {busy ? "Posting…" : "Post comment"}
+              {busy ? t("blog.postingComment") : t("blog.postComment")}
             </button>
           </div>
         </form>
 
         <div style={{ marginTop: 16 }}>
           {(post.comments || []).length === 0 && (
-            <p className="muted">Be the first to comment.</p>
+            <p className="muted">{t("blog.noComments")}</p>
           )}
           {(post.comments || []).map((c) => (
-            <div key={c.id} className="card card-pad" style={{ marginBottom: 8 }}>
+            <div
+              key={c.id}
+              className="card card-pad"
+              style={{ marginBottom: 8 }}
+            >
               <div className="row" style={{ fontSize: 13 }}>
-                <strong>{c.author_name || "Anonymous"}</strong>
+                <strong>{c.author_name || t("blog.anonymous")}</strong>
                 <span className="spacer" />
                 <span className="muted">{fmtDate(c.created_at)}</span>
               </div>
