@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { getNotifications, markNotificationsRead } from "../api/notifications";
+import { useTranslation } from "../i18n/I18nProvider";
 
 export default function Notifications() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -40,7 +42,7 @@ export default function Notifications() {
       <button
         onClick={toggle}
         className="notif-bell"
-        aria-label="Notifications"
+        aria-label={t("notifications.title")}
         style={{ position: "relative" }}
       >
         🔔
@@ -50,19 +52,19 @@ export default function Notifications() {
       {open && (
         <div className="notif-dropdown">
           <div className="head">
-            Notifications
+            {t("notifications.title")}
             <span
               className="muted"
               style={{ float: "right", fontWeight: 400, fontSize: 12 }}
             >
-              {items.length} total
+              {t("notifications.total", { count: items.length })}
             </span>
           </div>
 
           {items.length === 0 ? (
             <div className="empty" style={{ padding: 24 }}>
               <div className="emoji" style={{ fontSize: 28 }}>🌱</div>
-              <p className="muted">You're all caught up.</p>
+              <p className="muted">{t("notifications.empty")}</p>
             </div>
           ) : (
             <ul className="notif-list">

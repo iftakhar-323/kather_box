@@ -10,6 +10,7 @@ import {
   deleteAddress,
   setDefaultAddress,
 } from "../api/auth";
+import { useTranslation } from "../i18n/I18nProvider";
 
 // =====================================================================
 // Profile.jsx — Sprint A
@@ -20,17 +21,18 @@ import {
 //   4. Delete Account  (irreversible, password confirmation)
 // =====================================================================
 
-const TABS = [
-  { key: "profile",  label: "Edit Profile" },
-  { key: "password", label: "Password" },
-  { key: "addresses", label: "Addresses" },
-  { key: "danger",   label: "Delete Account" },
-];
-
 export default function Profile({ onExit }) {
+  const { t } = useTranslation();
   const { user, refreshUser, logout } = useAuth();
   const [tab, setTab] = useState("profile");
   const [toast, setToast] = useState(null);
+
+  const TABS = [
+    { key: "profile",  label: t("profile.tabs.profile") },
+    { key: "password", label: t("profile.tabs.password") },
+    { key: "addresses", label: t("profile.tabs.addresses") },
+    { key: "danger",   label: t("profile.tabs.danger") },
+  ];
 
   const showToast = (text, type = "success") => {
     setToast({ text, type });
@@ -41,28 +43,28 @@ export default function Profile({ onExit }) {
     <section className="profile-page">
       <header className="profile-head">
         <div>
-          <h1 className="profile-title">My Account</h1>
+          <h1 className="profile-title">{t("profile.title")}</h1>
           <p className="profile-sub">
-            Signed in as <strong>{user?.email}</strong>
+            {t("profile.signedInAs", { email: user?.email })}
           </p>
         </div>
         {onExit && (
           <button className="btn btn-secondary btn-sm" onClick={onExit}>
-            ← Back to shop
+            {t("profile.backToShop")}
           </button>
         )}
       </header>
 
       <nav className="profile-tabs" role="tablist">
-        {TABS.map((t) => (
+        {TABS.map((tb) => (
           <button
-            key={t.key}
+            key={tb.key}
             role="tab"
-            aria-selected={tab === t.key}
-            className={"profile-tab" + (tab === t.key ? " is-active" : "")}
-            onClick={() => setTab(t.key)}
+            aria-selected={tab === tb.key}
+            className={"profile-tab" + (tab === tb.key ? " is-active" : "")}
+            onClick={() => setTab(tb.key)}
           >
-            {t.label}
+            {tb.label}
           </button>
         ))}
       </nav>
@@ -93,6 +95,7 @@ export default function Profile({ onExit }) {
 // Tab 1 — Edit Profile
 // =====================================================================
 function EditProfileTab({ onSaved }) {
+  const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -104,16 +107,16 @@ function EditProfileTab({ onSaved }) {
   const submit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      onSaved("Name is required", "error");
+      onSaved(t("profile.nameRequired"), "error");
       return;
     }
     setSaving(true);
     try {
       await updateProfile(form);
       await refreshUser();
-      onSaved("Profile updated ✓");
+      onSaved(t("profile.savedOk"));
     } catch (err) {
-      onSaved(err.response?.data?.error || "Failed to update", "error");
+      onSaved(err.response?.data?.error || t("profile.failedUpdate"), "error");
     } finally {
       setSaving(false);
     }
@@ -121,14 +124,11 @@ function EditProfileTab({ onSaved }) {
 
   return (
     <form className="profile-card" onSubmit={submit}>
-      <h3>Edit Profile</h3>
-      <p className="profile-hint">
-        Email and role can't be changed from here. Contact support if you need
-        to change your email.
-      </p>
+      <h3>{t("profile.editProfile")}</h3>
+      <p className="profile-hint">{t("profile.editHint")}</p>
 
       <label className="profile-field">
-        <span>Name</span>
+        <span>{t("profile.name")}</span>
         <input
           type="text"
           value={form.name}
@@ -138,28 +138,28 @@ function EditProfileTab({ onSaved }) {
       </label>
 
       <label className="profile-field">
-        <span>Phone</span>
+        <span>{t("profile.phone")}</span>
         <input
           type="tel"
           value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          placeholder="+880 1XXX XXX XXX"
+          placeholder={t("profile.phonePlaceholder")}
         />
       </label>
 
       <label className="profile-field">
-        <span>Address (legacy / quick)</span>
+        <span>{t("profile.addressLegacy")}</span>
         <textarea
           rows={2}
           value={form.address}
           onChange={(e) => setForm({ ...form, address: e.target.value })}
-          placeholder="Optional — for the full address book, see the Addresses tab."
+          placeholder={t("profile.addressLegacyHint")}
         />
       </label>
 
       <div className="profile-actions">
         <button className="btn btn-primary" disabled={saving}>
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? t("profile.saving") : t("profile.saveChanges")}
         </button>
       </div>
     </form>
@@ -170,23 +170,24 @@ function EditProfileTab({ onSaved }) {
 // Tab 2 — Change Password
 // =====================================================================
 function ChangePasswordTab({ onSaved }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ current: "", next: "", confirm: "" });
   const [saving, setSaving] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (form.next.length < 6) return onSaved("New password must be ≥ 6 chars", "error");
-    if (form.next !== form.confirm) return onSaved("Passwords don't match", "error");
+    if (form.next.length < 6) return onSaved(t("profile.passwordTooShort"), "error");
+    if (form.next !== form.confirm) return onSaved(t("profile.passwordsMismatch"), "error");
     setSaving(true);
     try {
       await changePassword({
         current_password: form.current,
         new_password: form.next,
       });
-      onSaved("Password changed ✓");
+      onSaved(t("profile.passwordChanged"));
       setForm({ current: "", next: "", confirm: "" });
     } catch (err) {
-      onSaved(err.response?.data?.error || "Failed to change password", "error");
+      onSaved(err.response?.data?.error || t("profile.passwordChangeFailed"), "error");
     } finally {
       setSaving(false);
     }
@@ -194,11 +195,11 @@ function ChangePasswordTab({ onSaved }) {
 
   return (
     <form className="profile-card" onSubmit={submit}>
-      <h3>Change Password</h3>
-      <p className="profile-hint">You'll stay logged in on this device.</p>
+      <h3>{t("profile.changePassword")}</h3>
+      <p className="profile-hint">{t("profile.changePasswordHint")}</p>
 
       <label className="profile-field">
-        <span>Current password</span>
+        <span>{t("profile.currentPassword")}</span>
         <input
           type="password"
           value={form.current}
@@ -209,7 +210,7 @@ function ChangePasswordTab({ onSaved }) {
       </label>
 
       <label className="profile-field">
-        <span>New password</span>
+        <span>{t("profile.newPassword")}</span>
         <input
           type="password"
           value={form.next}
@@ -221,7 +222,7 @@ function ChangePasswordTab({ onSaved }) {
       </label>
 
       <label className="profile-field">
-        <span>Confirm new password</span>
+        <span>{t("profile.confirmNewPassword")}</span>
         <input
           type="password"
           value={form.confirm}
@@ -234,7 +235,7 @@ function ChangePasswordTab({ onSaved }) {
 
       <div className="profile-actions">
         <button className="btn btn-primary" disabled={saving}>
-          {saving ? "Updating…" : "Update password"}
+          {saving ? t("profile.updating") : t("profile.updatePassword")}
         </button>
       </div>
     </form>
@@ -244,20 +245,23 @@ function ChangePasswordTab({ onSaved }) {
 // =====================================================================
 // Tab 3 — Address Book
 // =====================================================================
-const blankAddress = {
-  label: "Home",
-  recipient: "",
-  phone: "",
-  line1: "",
-  line2: "",
-  city: "",
-  region: "",
-  postal_code: "",
-  country: "Bangladesh",
-  is_default: false,
-};
+function blankAddress(t) {
+  return {
+    label: t("profile.labelPlaceholder").split(",")[0] || "Home",
+    recipient: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    city: "",
+    region: "",
+    postal_code: "",
+    country: "Bangladesh",
+    is_default: false,
+  };
+}
 
 function AddressBookTab({ onSaved }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // null | "new" | {id, ...}
@@ -268,7 +272,7 @@ function AddressBookTab({ onSaved }) {
       const res = await listAddresses();
       setItems(res.data.items || []);
     } catch (e) {
-      onSaved("Failed to load addresses", "error");
+      onSaved(t("profile.loadAddressesFailed"), "error");
     } finally {
       setLoading(false);
     }
@@ -280,43 +284,43 @@ function AddressBookTab({ onSaved }) {
     try {
       if (editing === "new") {
         await createAddress(form);
-        onSaved("Address added ✓");
+        onSaved(t("profile.addressAdded"));
       } else {
         await updateAddress(editing.id, form);
-        onSaved("Address updated ✓");
+        onSaved(t("profile.addressUpdated"));
       }
       setEditing(null);
       reload();
     } catch (err) {
-      onSaved(err.response?.data?.error || "Save failed", "error");
+      onSaved(err.response?.data?.error || t("profile.saveFailed"), "error");
     }
   };
 
   const remove = async (id) => {
-    if (!window.confirm("Delete this address?")) return;
+    if (!window.confirm(t("profile.deleteAddressConfirm"))) return;
     try {
       await deleteAddress(id);
-      onSaved("Address deleted");
+      onSaved(t("profile.addressDeleted"));
       reload();
     } catch (err) {
-      onSaved(err.response?.data?.error || "Delete failed", "error");
+      onSaved(err.response?.data?.error || t("profile.deleteFailed"), "error");
     }
   };
 
   const makeDefault = async (id) => {
     try {
       await setDefaultAddress(id);
-      onSaved("Default address updated");
+      onSaved(t("profile.defaultUpdated"));
       reload();
     } catch (err) {
-      onSaved(err.response?.data?.error || "Failed", "error");
+      onSaved(err.response?.data?.error || t("profile.failedUpdate"), "error");
     }
   };
 
   if (editing) {
     return (
       <AddressForm
-        initial={editing === "new" ? blankAddress : editing}
+        initial={editing === "new" ? blankAddress(t) : editing}
         onCancel={() => setEditing(null)}
         onSubmit={save}
       />
@@ -326,18 +330,16 @@ function AddressBookTab({ onSaved }) {
   return (
     <div className="profile-card">
       <div className="profile-card-head">
-        <h3>Address Book</h3>
+        <h3>{t("profile.addressBook")}</h3>
         <button className="btn btn-primary btn-sm" onClick={() => setEditing("new")}>
-          + Add address
+          {t("profile.addAddress")}
         </button>
       </div>
 
       {loading ? (
-        <p className="profile-empty">Loading…</p>
+        <p className="profile-empty">{t("profile.loading")}</p>
       ) : items.length === 0 ? (
-        <p className="profile-empty">
-          No addresses yet — add one for faster checkout.
-        </p>
+        <p className="profile-empty">{t("profile.noAddresses")}</p>
       ) : (
         <ul className="addr-list">
           {items.map((a) => (
@@ -345,7 +347,7 @@ function AddressBookTab({ onSaved }) {
               <div className="addr-main">
                 <div className="addr-line1">
                   <span className="addr-label">{a.label}</span>
-                  {a.is_default && <span className="addr-default-badge">DEFAULT</span>}
+                  {a.is_default && <span className="addr-default-badge">{t("profile.defaultBadge")}</span>}
                 </div>
                 <div className="addr-line2">{a.recipient} · {a.phone}</div>
                 <div className="addr-line3">
@@ -357,14 +359,14 @@ function AddressBookTab({ onSaved }) {
               <div className="addr-actions">
                 {!a.is_default && (
                   <button className="btn btn-ghost btn-xs" onClick={() => makeDefault(a.ID)}>
-                    Make default
+                    {t("profile.makeDefault")}
                   </button>
                 )}
                 <button className="btn btn-ghost btn-xs" onClick={() => setEditing(a)}>
-                  Edit
+                  {t("profile.edit")}
                 </button>
                 <button className="btn btn-ghost btn-xs btn-danger-text" onClick={() => remove(a.ID)}>
-                  Delete
+                  {t("profile.delete")}
                 </button>
               </div>
             </li>
@@ -376,14 +378,15 @@ function AddressBookTab({ onSaved }) {
 }
 
 function AddressForm({ initial, onSubmit, onCancel }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
-    ...blankAddress,
+    ...blankAddress(t),
     ...initial,
   });
   const submit = (e) => {
     e.preventDefault();
     if (!form.recipient || !form.phone || !form.line1 || !form.city) {
-      alert("Recipient, phone, address line 1, and city are required");
+      alert(t("profile.requiredFieldsAlert"));
       return;
     }
     onSubmit(form);
@@ -391,20 +394,20 @@ function AddressForm({ initial, onSubmit, onCancel }) {
 
   return (
     <form className="profile-card" onSubmit={submit}>
-      <h3>{initial?.ID ? "Edit address" : "New address"}</h3>
+      <h3>{initial?.ID ? t("profile.editAddress") : t("profile.newAddress")}</h3>
 
       <div className="profile-grid-2">
         <label className="profile-field">
-          <span>Label</span>
+          <span>{t("profile.label")}</span>
           <input
             type="text"
             value={form.label}
             onChange={(e) => setForm({ ...form, label: e.target.value })}
-            placeholder="Home, Office, Mom's…"
+            placeholder={t("profile.labelPlaceholder")}
           />
         </label>
         <label className="profile-field">
-          <span>Country</span>
+          <span>{t("profile.country")}</span>
           <input
             type="text"
             value={form.country}
@@ -412,7 +415,7 @@ function AddressForm({ initial, onSubmit, onCancel }) {
           />
         </label>
         <label className="profile-field">
-          <span>Recipient name *</span>
+          <span>{t("profile.recipientName")}</span>
           <input
             type="text"
             value={form.recipient}
@@ -421,7 +424,7 @@ function AddressForm({ initial, onSubmit, onCancel }) {
           />
         </label>
         <label className="profile-field">
-          <span>Phone *</span>
+          <span>{t("profile.phoneRequired")}</span>
           <input
             type="tel"
             value={form.phone}
@@ -430,26 +433,26 @@ function AddressForm({ initial, onSubmit, onCancel }) {
           />
         </label>
         <label className="profile-field profile-grid-full">
-          <span>Address line 1 *</span>
+          <span>{t("profile.addressLine1")}</span>
           <input
             type="text"
             value={form.line1}
             onChange={(e) => setForm({ ...form, line1: e.target.value })}
-            placeholder="House / Road / Street"
+            placeholder={t("profile.addressLine1Placeholder")}
             required
           />
         </label>
         <label className="profile-field profile-grid-full">
-          <span>Address line 2</span>
+          <span>{t("profile.addressLine2")}</span>
           <input
             type="text"
             value={form.line2}
             onChange={(e) => setForm({ ...form, line2: e.target.value })}
-            placeholder="Apartment / Floor (optional)"
+            placeholder={t("profile.addressLine2Placeholder")}
           />
         </label>
         <label className="profile-field">
-          <span>City *</span>
+          <span>{t("profile.city")}</span>
           <input
             type="text"
             value={form.city}
@@ -458,7 +461,7 @@ function AddressForm({ initial, onSubmit, onCancel }) {
           />
         </label>
         <label className="profile-field">
-          <span>Region / Division</span>
+          <span>{t("profile.region")}</span>
           <input
             type="text"
             value={form.region}
@@ -466,7 +469,7 @@ function AddressForm({ initial, onSubmit, onCancel }) {
           />
         </label>
         <label className="profile-field">
-          <span>Postal code</span>
+          <span>{t("profile.postalCode")}</span>
           <input
             type="text"
             value={form.postal_code}
@@ -479,15 +482,15 @@ function AddressForm({ initial, onSubmit, onCancel }) {
             checked={form.is_default}
             onChange={(e) => setForm({ ...form, is_default: e.target.checked })}
           />
-          <span>Make this my default address</span>
+          <span>{t("profile.makeDefaultCheckbox")}</span>
         </label>
       </div>
 
       <div className="profile-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>
-          Cancel
+          {t("profile.cancel")}
         </button>
-        <button className="btn btn-primary">Save address</button>
+        <button className="btn btn-primary">{t("profile.saveAddress")}</button>
       </div>
     </form>
   );
@@ -497,6 +500,7 @@ function AddressForm({ initial, onSubmit, onCancel }) {
 // Tab 4 — Delete Account
 // =====================================================================
 function DeleteAccountTab({ onDeleted, onError }) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -504,15 +508,15 @@ function DeleteAccountTab({ onDeleted, onError }) {
   const submit = async (e) => {
     e.preventDefault();
     if (confirmText !== "DELETE") {
-      return onError('Type DELETE (all caps) to confirm.');
+      return onError(t("profile.typeDeleteRequired"));
     }
-    if (!password) return onError("Enter your password.");
+    if (!password) return onError(t("profile.passwordRequired"));
     setBusy(true);
     try {
       await deleteAccount(password);
       onDeleted();
     } catch (err) {
-      onError(err.response?.data?.error || "Failed to delete");
+      onError(err.response?.data?.error || t("profile.deleteAccountFailed"));
     } finally {
       setBusy(false);
     }
@@ -520,14 +524,11 @@ function DeleteAccountTab({ onDeleted, onError }) {
 
   return (
     <form className="profile-card profile-card-danger" onSubmit={submit}>
-      <h3>Delete account</h3>
-      <p className="profile-hint">
-        This permanently removes your account, cart, wishlist, orders, addresses,
-        notifications, and reminders. This cannot be undone.
-      </p>
+      <h3>{t("profile.deleteAccount")}</h3>
+      <p className="profile-hint">{t("profile.deleteAccountHint")}</p>
 
       <label className="profile-field">
-        <span>Your password</span>
+        <span>{t("profile.yourPassword")}</span>
         <input
           type="password"
           value={password}
@@ -537,7 +538,7 @@ function DeleteAccountTab({ onDeleted, onError }) {
       </label>
 
       <label className="profile-field">
-        <span>Type <code>DELETE</code> to confirm</span>
+        <span>{t("profile.typeDeleteConfirm")}</span>
         <input
           type="text"
           value={confirmText}
@@ -548,7 +549,7 @@ function DeleteAccountTab({ onDeleted, onError }) {
 
       <div className="profile-actions">
         <button className="btn btn-danger" disabled={busy}>
-          {busy ? "Deleting…" : "Permanently delete my account"}
+          {busy ? t("profile.deleting") : t("profile.deleteAccountButton")}
         </button>
       </div>
     </form>
