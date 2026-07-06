@@ -10,29 +10,12 @@ import {
   listSubscriptionDeliveries,
 } from "../api/subscriptions";
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
-const PLANS = [
-  {
-    name: "Monthly Plant Box",
-    price: 1200,
-    interval: 30,
-    emoji: "🪴",
-    desc: "A new easy-care plant + care guide every month.",
-  },
-  {
-    name: "Cactus & Succulent Box",
-    price: 800,
-    interval: 60,
-    emoji: "🌵",
-    desc: "Two drought-tolerant picks every 2 months.",
-  },
-  {
-    name: "Herbal Kitchen Box",
-    price: 600,
-    interval: 30,
-    emoji: "🌿",
-    desc: "Tulsi, mint, coriander — kitchen windowsill herbs.",
-  },
+const PLAN_KEYS = [
+  { key: "monthly", price: 1200, interval: 30, emoji: "🪴" },
+  { key: "cactus", price: 800, interval: 60, emoji: "🌵" },
+  { key: "herbal", price: 600, interval: 30, emoji: "🌿" },
 ];
 
 function fmtDate(s) {
@@ -50,6 +33,7 @@ function fmtDate(s) {
 
 export default function Subscriptions() {
   const toast = useToast();
+  const { t } = useTranslation();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
@@ -69,12 +53,13 @@ export default function Subscriptions() {
     setMsg("");
     setError("");
     try {
+      const name = t(`subscriptions.plans.${plan.key}.name`);
       await createSubscription({
-        plan_name: plan.name,
+        plan_name: name,
         interval_days: plan.interval,
         price: plan.price,
       });
-      setMsg(`✓ Subscribed to ${plan.name}`);
+      setMsg(t("subscriptions.subscribed", { name }));
       load();
     } catch (e) {
       setError(e?.response?.data?.error || e.message);
@@ -82,10 +67,10 @@ export default function Subscriptions() {
   };
 
   const cancel = async (sub) => {
-    if (!window.confirm(`Cancel "${sub.plan_name}"?`)) return;
+    if (!window.confirm(t("subscriptions.cancelConfirm", { name: sub.plan_name }))) return;
     try {
       await cancelSubscription(sub.ID);
-      toast.ok("Subscription cancelled");
+      toast.ok(t("subscriptions.cancelledMsg"));
       load();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -95,7 +80,7 @@ export default function Subscriptions() {
   const advance = async (sub) => {
     try {
       await advanceSubscription(sub.ID);
-      toast.ok("Delivery marked as sent");
+      toast.ok(t("subscriptions.deliverySentMsg"));
       load();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -105,7 +90,7 @@ export default function Subscriptions() {
   const pause = async (sub) => {
     try {
       await pauseSubscription(sub.ID);
-      toast.ok("Subscription paused");
+      toast.ok(t("subscriptions.pausedMsg"));
       load();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -115,7 +100,7 @@ export default function Subscriptions() {
   const resume = async (sub) => {
     try {
       await resumeSubscription(sub.ID);
-      toast.ok("Subscription resumed");
+      toast.ok(t("subscriptions.resumedMsg"));
       load();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -125,7 +110,7 @@ export default function Subscriptions() {
   const renew = async (sub) => {
     try {
       await renewSubscription(sub.ID);
-      toast.ok("Renewed — back on the active list");
+      toast.ok(t("subscriptions.renewedMsg"));
       load();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -135,10 +120,9 @@ export default function Subscriptions() {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ marginBottom: 6 }}>Plant subscriptions 📦</h1>
+        <h1 style={{ marginBottom: 6 }}>{t("subscriptions.headerTitle")}</h1>
         <p className="muted">
-          Recurring boxes delivered to your door — pause, resume or cancel any
-          time.
+          {t("subscriptions.headerSubtitle")}
         </p>
       </div>
 
@@ -156,40 +140,40 @@ export default function Subscriptions() {
       )}
       {error && <div className="warning">{error}</div>}
 
-      <h2>Available plans</h2>
+      <h2>{t("subscriptions.availablePlans")}</h2>
       <div className="product-grid">
-        {PLANS.map((p) => (
-          <div key={p.name} className="product-card">
+        {PLAN_KEYS.map((p) => (
+          <div key={p.key} className="product-card">
             <div className="image">
               <span style={{ fontSize: 56 }}>{p.emoji}</span>
             </div>
             <div className="body">
-              <h3>{p.name}</h3>
-              <p className="desc">{p.desc}</p>
+              <h3>{t(`subscriptions.plans.${p.key}.name`)}</h3>
+              <p className="desc">{t(`subscriptions.plans.${p.key}.desc`)}</p>
               <div className="row" style={{ alignItems: "center" }}>
                 <span className="price">৳{p.price}</span>
                 <span className="muted" style={{ fontSize: 13 }}>
-                  every {p.interval} days
+                  {t("subscriptions.planInterval", { count: p.interval })}
                 </span>
               </div>
               <button
                 onClick={() => subscribe(p)}
                 className="btn btn-primary btn-block mt-8"
               >
-                Subscribe
+                {t("subscriptions.subscribe")}
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      <h2 style={{ marginTop: 32 }}>Your subscriptions</h2>
-      {loading && <div className="empty">Loading…</div>}
+      <h2 style={{ marginTop: 32 }}>{t("subscriptions.yourSubs")}</h2>
+      {loading && <div className="empty">{t("subscriptions.loading")}</div>}
       {!loading && list.length === 0 && (
         <div className="empty">
           <div className="emoji">📭</div>
-          <h3>No active subscriptions</h3>
-          <p>Pick a plan above to get started.</p>
+          <h3>{t("subscriptions.noActive")}</h3>
+          <p>{t("subscriptions.noActiveBody")}</p>
         </div>
       )}
       {!loading && list.length > 0 && (
@@ -206,7 +190,11 @@ export default function Subscriptions() {
                 ? "status-processing"
                 : "status-delivered";
             const pillTxt =
-              s.status !== "active" ? s.status : overdue ? "Delivery due" : "Active";
+              s.status !== "active"
+                ? s.status
+                : overdue
+                ? t("subscriptions.statusDeliveryDue")
+                : t("subscriptions.statusActive");
             return (
               <div
                 key={s.ID}
@@ -230,8 +218,13 @@ export default function Subscriptions() {
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <div style={{ fontWeight: 600 }}>{s.plan_name}</div>
                   <div className="muted" style={{ fontSize: 13 }}>
-                    ৳{s.price} • every {s.interval_days} days
-                    {s.paused_at ? ` • paused ${fmtDate(s.paused_at)}` : ""}
+                    {t("subscriptions.subPriceInterval", {
+                      price: "৳" + s.price,
+                      count: s.interval_days,
+                    })}
+                    {s.paused_at
+                      ? " " + t("subscriptions.pausedOn", { date: fmtDate(s.paused_at) })
+                      : ""}
                   </div>
                 </div>
                 <span className={"status-pill " + pillCls}>{pillTxt}</span>
@@ -240,8 +233,8 @@ export default function Subscriptions() {
                   style={{ width: 110, textAlign: "right" }}
                 >
                   {s.next_delivery
-                    ? `Next: ${fmtDate(s.next_delivery)}`
-                    : "—"}
+                    ? t("subscriptions.nextOn", { date: fmtDate(s.next_delivery) })
+                    : t("subscriptions.nextNone")}
                 </div>
                 <div
                   className="row"
@@ -252,22 +245,22 @@ export default function Subscriptions() {
                       <button
                         onClick={() => advance(s)}
                         className="btn btn-secondary btn-sm"
-                        title="Manually mark a delivery as sent"
+                        title={t("subscriptions.btnDeliverNowTitle")}
                       >
-                        Deliver now
+                        {t("subscriptions.btnDeliverNow")}
                       </button>
                       <button
                         onClick={() => pause(s)}
                         className="btn btn-ghost btn-sm"
-                        title="Pause for one cycle"
+                        title={t("subscriptions.btnPauseTitle")}
                       >
-                        ⏸ Pause
+                        {t("subscriptions.btnPause")}
                       </button>
                       <button
                         onClick={() => cancel(s)}
                         className="btn btn-danger btn-sm"
                       >
-                        Cancel
+                        {t("subscriptions.cancel")}
                       </button>
                     </>
                   )}
@@ -277,20 +270,20 @@ export default function Subscriptions() {
                         onClick={() => resume(s)}
                         className="btn btn-primary btn-sm"
                       >
-                        ▶ Resume
+                        {t("subscriptions.btnResume")}
                       </button>
                       <button
                         onClick={() => renew(s)}
                         className="btn btn-secondary btn-sm"
-                        title="Force a renewal now"
+                        title={t("subscriptions.btnRenewNowTitle")}
                       >
-                        🔄 Renew now
+                        {t("subscriptions.btnRenewNow")}
                       </button>
                       <button
                         onClick={() => cancel(s)}
                         className="btn btn-danger btn-sm"
                       >
-                        Cancel
+                        {t("subscriptions.cancel")}
                       </button>
                     </>
                   )}
@@ -299,15 +292,15 @@ export default function Subscriptions() {
                       onClick={() => renew(s)}
                       className="btn btn-primary btn-sm"
                     >
-                      🔄 Renew
+                      {t("subscriptions.btnRenew")}
                     </button>
                   )}
                   <button
                     onClick={() => setHistoryOf(s.ID)}
                     className="btn btn-ghost btn-sm"
-                    title="View past deliveries"
+                    title={t("subscriptions.btnHistoryTitle")}
                   >
-                    📜 History
+                    {t("subscriptions.btnHistory")}
                   </button>
                 </div>
               </div>
@@ -327,6 +320,7 @@ export default function Subscriptions() {
 }
 
 function DeliveryHistory({ id, onClose }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -356,16 +350,16 @@ function DeliveryHistory({ id, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="row" style={{ alignItems: "center" }}>
-          <h3 style={{ margin: 0 }}>📜 Delivery history</h3>
+          <h3 style={{ margin: 0 }}>{t("subscriptions.historyTitle")}</h3>
           <span className="spacer" />
           <button onClick={onClose} className="btn btn-ghost btn-sm">
             ✕
           </button>
         </div>
         {loading ? (
-          <p className="muted">Loading…</p>
+          <p className="muted">{t("subscriptions.loading")}</p>
         ) : items.length === 0 ? (
-          <p className="muted">No deliveries yet.</p>
+          <p className="muted">{t("subscriptions.historyEmpty")}</p>
         ) : (
           <div style={{ marginTop: 8 }}>
             {items.map((d) => (

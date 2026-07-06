@@ -267,7 +267,55 @@
     "history": "Delivery history",
     "empty": "No subscriptions yet.",
     "browsePlans": "Browse subscription plans",
-    "manage": "Manage"
+    "manage": "Manage",
+    "headerTitle": "Plant subscriptions 📦",
+    "headerSubtitle": "Recurring boxes delivered to your door — pause, resume or cancel any time.",
+    "loading": "Loading…",
+    "subscribed": "✓ Subscribed to {{name}}",
+    "cancelledMsg": "Subscription cancelled",
+    "deliverySentMsg": "Delivery marked as sent",
+    "pausedMsg": "Subscription paused",
+    "resumedMsg": "Subscription resumed",
+    "renewedMsg": "Renewed — back on the active list",
+    "cancelConfirm": "Cancel \"{{name}}\"?",
+    "availablePlans": "Available plans",
+    "planInterval": "every {{count}} days",
+    "subscribe": "Subscribe",
+    "yourSubs": "Your subscriptions",
+    "noActive": "No active subscriptions",
+    "noActiveBody": "Pick a plan above to get started.",
+    "statusActive": "Active",
+    "statusDeliveryDue": "Delivery due",
+    "subPriceInterval": "{{price}} • every {{count}} days",
+    "pausedOn": "• paused {{date}}",
+    "nextOn": "Next: {{date}}",
+    "nextNone": "—",
+    "btnDeliverNow": "Deliver now",
+    "btnDeliverNowTitle": "Manually mark a delivery as sent",
+    "btnPause": "⏸ Pause",
+    "btnPauseTitle": "Pause for one cycle",
+    "btnResume": "▶ Resume",
+    "btnRenewNow": "🔄 Renew now",
+    "btnRenewNowTitle": "Force a renewal now",
+    "btnRenew": "🔄 Renew",
+    "btnHistory": "📜 History",
+    "btnHistoryTitle": "View past deliveries",
+    "historyTitle": "📜 Delivery history",
+    "historyEmpty": "No deliveries yet.",
+    "plans": {
+      "monthly": {
+        "name": "Monthly Plant Box",
+        "desc": "A new easy-care plant + care guide every month."
+      },
+      "cactus": {
+        "name": "Cactus & Succulent Box",
+        "desc": "Two drought-tolerant picks every 2 months."
+      },
+      "herbal": {
+        "name": "Herbal Kitchen Box",
+        "desc": "Tulsi, mint, coriander — kitchen windowsill herbs."
+      }
+    }
   },
   "care": {
     "title": "Plant care",
