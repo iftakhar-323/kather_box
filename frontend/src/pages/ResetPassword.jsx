@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { resetPassword } from "../api/auth";
+import { useTranslation } from "../i18n/I18nProvider";
 
 // =====================================================================
 // ResetPassword.jsx
@@ -7,6 +8,7 @@ import { resetPassword } from "../api/auth";
 // =====================================================================
 
 export default function ResetPassword({ prefillEmail, prefillToken, onDone, onSwitchToLogin }) {
+  const { t } = useTranslation();
   const [token, setToken] = useState(prefillToken || "");
   const [email, setEmail] = useState(prefillEmail || "");
   const [password, setPassword] = useState("");
@@ -17,14 +19,14 @@ export default function ResetPassword({ prefillEmail, prefillToken, onDone, onSw
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
-    if (password.length < 6) return setErr("Password must be at least 6 characters");
-    if (password !== confirm) return setErr("Passwords don't match");
+    if (password.length < 6) return setErr(t("forgotFlow.resetTooShort"));
+    if (password !== confirm) return setErr(t("forgotFlow.resetMismatch"));
     setBusy(true);
     try {
       await resetPassword(token.trim(), password);
       onDone();
     } catch (e2) {
-      setErr(e2.response?.data?.error || "Reset failed");
+      setErr(e2.response?.data?.error || t("forgotFlow.resetFailed"));
     } finally {
       setBusy(false);
     }
@@ -33,14 +35,12 @@ export default function ResetPassword({ prefillEmail, prefillToken, onDone, onSw
   return (
     <section className="auth-page">
       <div className="auth-card">
-        <h2 className="auth-title">Reset password</h2>
-        <p className="auth-sub">
-          Enter the 6-digit code from your email and your new password.
-        </p>
+        <h2 className="auth-title">{t("forgotFlow.resetTitle")}</h2>
+        <p className="auth-sub">{t("forgotFlow.resetSub")}</p>
 
         <form onSubmit={submit} className="auth-form">
           <label className="profile-field">
-            <span>Email</span>
+            <span>{t("auth.email")}</span>
             <input
               type="email"
               value={email}
@@ -50,7 +50,7 @@ export default function ResetPassword({ prefillEmail, prefillToken, onDone, onSw
           </label>
 
           <label className="profile-field">
-            <span>6-digit reset code</span>
+            <span>{t("forgotFlow.resetCodeLabel")}</span>
             <input
               type="text"
               value={token}
@@ -59,14 +59,14 @@ export default function ResetPassword({ prefillEmail, prefillToken, onDone, onSw
               pattern="\d{6}"
               maxLength={6}
               required
-              placeholder="123456"
+              placeholder={t("forgotFlow.resetCodePlaceholder")}
               autoFocus
               className="reset-code-input"
             />
           </label>
 
           <label className="profile-field">
-            <span>New password</span>
+            <span>{t("forgotFlow.resetNewPassword")}</span>
             <input
               type="password"
               value={password}
@@ -78,7 +78,7 @@ export default function ResetPassword({ prefillEmail, prefillToken, onDone, onSw
           </label>
 
           <label className="profile-field">
-            <span>Confirm new password</span>
+            <span>{t("forgotFlow.resetConfirm")}</span>
             <input
               type="password"
               value={confirm}
@@ -92,10 +92,10 @@ export default function ResetPassword({ prefillEmail, prefillToken, onDone, onSw
           {err && <div className="auth-err">{err}</div>}
 
           <button className="btn btn-primary" disabled={busy}>
-            {busy ? "Resetting…" : "Reset password"}
+            {busy ? t("forgotFlow.resetting") : t("forgotFlow.resetSubmit")}
           </button>
           <button type="button" className="btn btn-ghost" onClick={onSwitchToLogin}>
-            Back to login
+            {t("forgotFlow.forgotBackToLogin")}
           </button>
         </form>
       </div>

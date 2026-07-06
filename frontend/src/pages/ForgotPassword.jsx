@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { forgotPassword } from "../api/auth";
+import { useTranslation } from "../i18n/I18nProvider";
 
 // =====================================================================
 // ForgotPassword.jsx
@@ -10,6 +11,7 @@ import { forgotPassword } from "../api/auth";
 // =====================================================================
 
 export default function ForgotPassword({ onSwitchToLogin, onSwitchToReset }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [devToken, setDevToken] = useState(null);
@@ -30,7 +32,7 @@ export default function ForgotPassword({ onSwitchToLogin, onSwitchToReset }) {
         setDevToken(res.data.dev_only_token);
       }
     } catch (e2) {
-      setErr(e2.response?.data?.error || "Something went wrong");
+      setErr(e2.response?.data?.error || t("forgotFlow.forgotGenericError"));
     } finally {
       setBusy(false);
     }
@@ -39,57 +41,53 @@ export default function ForgotPassword({ onSwitchToLogin, onSwitchToReset }) {
   return (
     <section className="auth-page">
       <div className="auth-card">
-        <h2 className="auth-title">Forgot password</h2>
-        <p className="auth-sub">
-          Enter your email and we'll generate a 6-digit reset code.
-        </p>
+        <h2 className="auth-title">{t("forgotFlow.forgotTitle")}</h2>
+        <p className="auth-sub">{t("forgotFlow.forgotSub")}</p>
 
         {sent ? (
           <div className="forgot-sent">
             <div className="forgot-check">✓</div>
-            <p>If <strong>{email}</strong> is registered, a reset code has been generated.</p>
+            <p>{t("forgotFlow.forgotSent", { email })}</p>
             {devToken && (
               <div className="forgot-devbox">
-                <strong>Dev mode token:</strong>{" "}
+                <strong>{t("forgotFlow.forgotDevTokenLabel")}</strong>{" "}
                 <code className="forgot-token">{devToken}</code>
-                <p className="forgot-devhint">
-                  (In production this would arrive by email. For now it's also in the server console.)
-                </p>
+                <p className="forgot-devhint">{t("forgotFlow.forgotDevHint")}</p>
               </div>
             )}
             <button
               className="btn btn-primary"
               onClick={() => onSwitchToReset(email, devToken)}
             >
-              Enter code & set new password →
+              {t("forgotFlow.forgotEnterCode")}
             </button>
             <button className="btn btn-ghost" onClick={onSwitchToLogin}>
-              Back to login
+              {t("forgotFlow.forgotBackToLogin")}
             </button>
           </div>
         ) : (
           <form onSubmit={submit} className="auth-form">
             <label className="profile-field">
-              <span>Email</span>
+              <span>{t("auth.email")}</span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder={t("auth.emailPlaceholder")}
                 required
                 autoFocus
               />
             </label>
             {err && <div className="auth-err">{err}</div>}
             <button className="btn btn-primary" disabled={busy}>
-              {busy ? "Sending…" : "Send reset code"}
+              {busy ? t("forgotFlow.forgotSending") : t("forgotFlow.forgotSubmit")}
             </button>
             <button
               type="button"
               className="btn btn-ghost"
               onClick={onSwitchToLogin}
             >
-              Back to login
+              {t("forgotFlow.forgotBackToLogin")}
             </button>
           </form>
         )}
