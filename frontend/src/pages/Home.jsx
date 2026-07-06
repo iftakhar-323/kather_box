@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getProducts, getGiftRecommendations } from "../api/products";
 import ProductCard from "../components/ProductCard";
+import { useTranslation } from "../i18n/I18nProvider";
 
 const emptyFilters = {
   search: "",
@@ -13,6 +14,7 @@ const emptyFilters = {
 };
 
 export default function Home() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -45,7 +47,7 @@ export default function Home() {
       })
       .catch((err) => {
         console.error(err);
-        setError("Failed to load products. Is the backend running?");
+        setError(t("home.loadFailed"));
         setLoading(false);
       });
   };
@@ -73,45 +75,44 @@ export default function Home() {
   return (
     <div>
       <section className="hero">
-        <h1>Bring nature home 🌿</h1>
+        <h1>{t("home.heroTitleFull")}</h1>
         <p>
-          Curated plants, handcrafted planters and gentle care essentials —
-          delivered to your doorstep in Dhaka and beyond.
+          {t("home.heroSubtitleFull")}
         </p>
       </section>
 
-      {/* ===== SSEcommerce trust strip ===== */}
-      <section className="sse-strip" aria-label="Why shop with SSEcommerce">
+      {/* ===== KatherBox trust strip ===== */}
+      <section className="sse-strip" aria-label={t("home.trustStripLabel")}>
         <div className="sse-tile">
           <div className="sse-ico" aria-hidden="true">🔒</div>
           <div className="sse-text">
-            <div className="sse-title">Secure checkout</div>
-            <div className="sse-sub">SSL-encrypted payments</div>
-            <span className="sse-badge">PCI · DSS</span>
+            <div className="sse-title">{t("home.trust1Title")}</div>
+            <div className="sse-sub">{t("home.trust1Sub")}</div>
+            <span className="sse-badge">{t("home.trust1Badge")}</span>
           </div>
         </div>
         <div className="sse-tile">
           <div className="sse-ico" aria-hidden="true">🚚</div>
           <div className="sse-text">
-            <div className="sse-title">Same-day delivery</div>
-            <div className="sse-sub">Dhaka · Chattogram · Sylhet</div>
-            <span className="sse-badge">FREE ৳1500+</span>
+            <div className="sse-title">{t("home.trust2Title")}</div>
+            <div className="sse-sub">{t("home.trust2Sub")}</div>
+            <span className="sse-badge">{t("home.trust2Badge")}</span>
           </div>
         </div>
         <div className="sse-tile">
           <div className="sse-ico" aria-hidden="true">🌱</div>
           <div className="sse-text">
-            <div className="sse-title">7-day plant guarantee</div>
-            <div className="sse-sub">Free replacement if it doesn&apos;t thrive</div>
-            <span className="sse-badge">RATED 4.9★</span>
+            <div className="sse-title">{t("home.trust3Title")}</div>
+            <div className="sse-sub">{t("home.trust3Sub")}</div>
+            <span className="sse-badge">{t("home.trust3Badge")}</span>
           </div>
         </div>
         <div className="sse-tile">
           <div className="sse-ico" aria-hidden="true">💬</div>
           <div className="sse-text">
-            <div className="sse-title">Expert care support</div>
-            <div className="sse-sub">Chat with botanists · Free</div>
-            <span className="sse-badge">24 / 7</span>
+            <div className="sse-title">{t("home.trust4Title")}</div>
+            <div className="sse-sub">{t("home.trust4Sub")}</div>
+            <span className="sse-badge">{t("home.trust4Badge")}</span>
           </div>
         </div>
       </section>
@@ -120,9 +121,9 @@ export default function Home() {
       <section className="card" style={{ marginBottom: 24 }}>
         <div className="row" style={{ alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 24 }}>🎁</span>
-          <h2 style={{ margin: 0, fontSize: "1.15rem" }}>Find the perfect plant gift</h2>
+          <h2 style={{ margin: 0, fontSize: "1.15rem" }}>{t("home.giftTitle")}</h2>
           <span className="spacer" />
-          <span className="muted" style={{ fontSize: 13 }}>Budget-aware • occasion-matched</span>
+          <span className="muted" style={{ fontSize: 13 }}>{t("home.giftSubtitle")}</span>
         </div>
 
         <form
@@ -150,7 +151,7 @@ export default function Home() {
             className="input"
             type="number"
             min="100"
-            placeholder="Budget (৳)"
+            placeholder={t("home.giftBudgetPlaceholder")}
             value={giftBudget}
             onChange={(e) => setGiftBudget(e.target.value)}
           />
@@ -159,24 +160,24 @@ export default function Home() {
             value={giftOccasion}
             onChange={(e) => setGiftOccasion(e.target.value)}
           >
-            <option value="">Any occasion</option>
-            <option value="birthday">Birthday</option>
-            <option value="housewarming">Housewarming</option>
-            <option value="thank-you">Thank-you</option>
-            <option value="get-well">Get well</option>
-            <option value="anniversary">Anniversary</option>
+            <option value="">{t("home.giftOccasionAny")}</option>
+            <option value="birthday">{t("home.giftOccasionBirthday")}</option>
+            <option value="housewarming">{t("home.giftOccasionHousewarming")}</option>
+            <option value="thank-you">{t("home.giftOccasionThankyou")}</option>
+            <option value="get-well">{t("home.giftOccasionGetwell")}</option>
+            <option value="anniversary">{t("home.giftOccasionAnniversary")}</option>
           </select>
           <select
             className="select"
             value={giftIndoor}
             onChange={(e) => setGiftIndoor(e.target.value)}
           >
-            <option value="">Indoor / outdoor</option>
-            <option value="indoor">Indoor</option>
-            <option value="outdoor">Outdoor</option>
+            <option value="">{t("home.giftIndoorOutdoorAny")}</option>
+            <option value="indoor">{t("home.giftIndoor")}</option>
+            <option value="outdoor">{t("home.giftOutdoor")}</option>
           </select>
           <button type="submit" className="btn btn-primary btn-sm">
-            {giftLoading ? "…" : "Recommend"}
+            {giftLoading ? "…" : t("home.giftRecommend")}
           </button>
         </form>
 
@@ -201,7 +202,7 @@ export default function Home() {
                     <span className="price">৳{r.product.price}</span>
                     <span className="spacer" />
                     <span className="muted" style={{ fontSize: 12 }}>
-                      match {Math.round(r.score)}%
+                      {t("home.giftMatch", { score: Math.round(r.score) })}
                     </span>
                   </div>
                 </div>
@@ -215,7 +216,7 @@ export default function Home() {
       <form onSubmit={apply} className="filter-bar">
         <input
           className="input"
-          placeholder="🔍 Search products…"
+          placeholder={t("home.searchPlaceholder")}
           value={filters.search}
           onChange={update("search")}
         />
@@ -224,40 +225,40 @@ export default function Home() {
           value={filters.category}
           onChange={update("category")}
         >
-          <option value="">All categories</option>
-          <option value="plant">Plants</option>
-          <option value="decor">Decor</option>
-          <option value="care">Care Products</option>
+          <option value="">{t("home.allCategories")}</option>
+          <option value="plant">{t("home.categoryPlants")}</option>
+          <option value="decor">{t("home.categoryDecor")}</option>
+          <option value="care">{t("home.categoryCare")}</option>
         </select>
         <select
           className="select"
           value={filters.subcategory}
           onChange={update("subcategory")}
         >
-          <option value="">All subcategories</option>
-          <option value="indoor_plant">Indoor Plant</option>
-          <option value="outdoor_plant">Outdoor Plant</option>
-          <option value="plant_box">Plant Box</option>
-          <option value="decor">Decor</option>
-          <option value="soil">Soil</option>
-          <option value="fertilizer">Fertilizer</option>
-          <option value="care_kit">Care Kit</option>
+          <option value="">{t("home.allSubcategories")}</option>
+          <option value="indoor_plant">{t("home.subIndoorPlant")}</option>
+          <option value="outdoor_plant">{t("home.subOutdoorPlant")}</option>
+          <option value="plant_box">{t("home.subPlantBox")}</option>
+          <option value="decor">{t("home.subDecor")}</option>
+          <option value="soil">{t("home.subSoil")}</option>
+          <option value="fertilizer">{t("home.subFertilizer")}</option>
+          <option value="care_kit">{t("home.subCareKit")}</option>
         </select>
         <select
           className="select"
           value={filters.indoor_outdoor}
           onChange={update("indoor_outdoor")}
         >
-          <option value="">Indoor / Outdoor</option>
-          <option value="indoor">Indoor</option>
-          <option value="outdoor">Outdoor</option>
-          <option value="both">Both</option>
+          <option value="">{t("home.indoorOutdoorAny")}</option>
+          <option value="indoor">{t("home.giftIndoor")}</option>
+          <option value="outdoor">{t("home.giftOutdoor")}</option>
+          <option value="both">{t("home.indoorOutdoorBoth")}</option>
         </select>
         <input
           className="input"
           type="number"
           min="0"
-          placeholder="Min ৳"
+          placeholder={t("home.minPricePlaceholder")}
           value={filters.min_price}
           onChange={update("min_price")}
         />
@@ -265,21 +266,23 @@ export default function Home() {
           className="input"
           type="number"
           min="0"
-          placeholder="Max ৳"
+          placeholder={t("home.maxPricePlaceholder")}
           value={filters.max_price}
           onChange={update("max_price")}
         />
         <button type="submit" className="btn btn-primary btn-sm">
-          Apply
+          {t("home.apply")}
         </button>
         <button type="button" onClick={reset} className="btn btn-ghost btn-sm">
-          Reset
+          {t("home.reset")}
         </button>
       </form>
 
       <div className="row mt-24 mb-12">
         <h2 style={{ fontSize: "1.25rem" }}>
-          {loading ? "Loading…" : `${total} item${total === 1 ? "" : "s"}`}
+          {loading
+            ? t("home.loading")
+            : t(total === 1 ? "home.totalItems" : "home.totalItemsPlural", { count: total })}
         </h2>
         <span className="spacer" />
         <select
@@ -292,10 +295,10 @@ export default function Home() {
           }}
           style={{ padding: "6px 10px", fontSize: 13 }}
         >
-          <option value="newest">Newest</option>
-          <option value="price_asc">Price ↑</option>
-          <option value="price_desc">Price ↓</option>
-          <option value="name_asc">Name A→Z</option>
+          <option value="newest">{t("home.sortNewest")}</option>
+          <option value="price_asc">{t("home.sortPriceAsc")}</option>
+          <option value="price_desc">{t("home.sortPriceDesc")}</option>
+          <option value="name_asc">{t("home.sortNameAsc")}</option>
         </select>
       </div>
 
@@ -310,10 +313,10 @@ export default function Home() {
               load(filters, np);
             }}
           >
-            ← Prev
+            {t("home.prev")}
           </button>
           <span className="muted" style={{ alignSelf: "center", fontSize: 13 }}>
-            Page {page} of {totalPages}
+            {t("home.pageOf", { page, total: totalPages })}
           </span>
           <button
             className="btn btn-secondary btn-sm"
@@ -324,7 +327,7 @@ export default function Home() {
               load(filters, np);
             }}
           >
-            Next →
+            {t("home.next")}
           </button>
         </div>
       )}
@@ -332,7 +335,7 @@ export default function Home() {
       {loading ? (
         <div className="empty">
           <div className="emoji">🪴</div>
-          <h3>Loading products…</h3>
+          <h3>{t("home.loadingProducts")}</h3>
         </div>
       ) : error ? (
         <div className="empty">
@@ -342,8 +345,8 @@ export default function Home() {
       ) : products.length === 0 ? (
         <div className="empty">
           <div className="emoji">🍃</div>
-          <h3>No products match your filters</h3>
-          <p>Try widening the search or resetting filters.</p>
+          <h3>{t("home.noMatchTitle")}</h3>
+          <p>{t("home.noMatchBody")}</p>
         </div>
       ) : (
         <div className="product-grid">
