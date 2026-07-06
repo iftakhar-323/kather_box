@@ -10,12 +10,14 @@ import {
 } from "../api/loyalty";
 // aliases intentionally omitted — using real names above
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-IN");
 }
 
 export default function Loyalty() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [me, setMe] = useState(null);
   const [achievements, setAchievements] = useState([]);
@@ -41,7 +43,7 @@ export default function Loyalty() {
     setBusy(true);
     try {
       const r = await claimAchievement(id);
-      toast.ok(`Claimed +${r.data?.points || 0} points`);
+      toast.ok(t("loyalty.claimedPointsToast", { n: r.data?.points || 0 }));
       loadAll();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -54,7 +56,11 @@ export default function Loyalty() {
     setBusy(true);
     try {
       const r = await redeemReward(id);
-      toast.ok(`Redeemed: ${r.data?.coupon_code || "coupon"}`);
+      toast.ok(
+        t("loyalty.redeemedCouponToast", {
+          code: r.data?.coupon_code || t("loyalty.redeemedFallback"),
+        })
+      );
       loadAll();
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
@@ -69,7 +75,7 @@ export default function Loyalty() {
     setBusy(true);
     try {
       const r = await applyReferral(code.trim());
-      toast.ok(`+${r.data?.bonus || 0} bonus points applied`);
+      toast.ok(t("loyalty.bonusAppliedToast", { n: r.data?.bonus || 0 }));
       setCode("");
       loadAll();
     } catch (e) {
@@ -83,17 +89,16 @@ export default function Loyalty() {
     return (
       <div className="empty">
         <div className="emoji">🏆</div>
-        <h3>Loading your loyalty…</h3>
+        <h3>{t("loyalty.loading")}</h3>
       </div>
     );
   }
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: 8 }}>🏆 Green Points & Rewards</h1>
+      <h1 style={{ marginBottom: 8 }}>{t("loyalty.head")}</h1>
       <p className="muted" style={{ marginBottom: 24 }}>
-        Earn points with every purchase, unlock achievements, climb tiers and
-        redeem exclusive rewards.
+        {t("loyalty.subhead")}
       </p>
 
       <div
@@ -107,31 +112,31 @@ export default function Loyalty() {
         }}
       >
         <div>
-          <div className="muted">Points</div>
+          <div className="muted">{t("loyalty.pointsLabel")}</div>
           <div style={{ fontSize: 32, fontWeight: 700, color: "var(--leaf-700)" }}>
             {fmt(me.points)}
           </div>
         </div>
         <div>
-          <div className="muted">Tier</div>
+          <div className="muted">{t("loyalty.tierLabel")}</div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>
-            {me.tier || "🌱 Sapling"}
+            {me.tier || t("loyalty.defaultTier")}
           </div>
         </div>
         <div>
-          <div className="muted">Total spent</div>
+          <div className="muted">{t("loyalty.totalSpentLabel")}</div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>৳{fmt(me.total_spend)}</div>
         </div>
         <div>
-          <div className="muted">Referrals</div>
+          <div className="muted">{t("loyalty.referralsLabel")}</div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>{fmt(me.referrals)}</div>
         </div>
       </div>
 
       <section className="mt-24">
-        <h2>🎯 Achievements</h2>
+        <h2>{t("loyalty.achievementsHeading")}</h2>
         {achievements.length === 0 && (
-          <p className="muted">No achievements available yet.</p>
+          <p className="muted">{t("loyalty.achievementsEmpty")}</p>
         )}
         <div
           style={{
@@ -149,17 +154,19 @@ export default function Loyalty() {
                 {a.description}
               </p>
               <div className="row" style={{ marginTop: 8 }}>
-                <span className="tag tag-leaf">+{a.points} pts</span>
+                <span className="tag tag-leaf">
+                  {t("loyalty.pointsTag", { n: a.points })}
+                </span>
                 <span className="spacer" />
                 {a.claimed ? (
-                  <span className="tag tag-success">✓ Claimed</span>
+                  <span className="tag tag-success">{t("loyalty.claimedTag")}</span>
                 ) : (
                   <button
                     className="btn btn-primary btn-xs"
                     disabled={busy || !a.unlocked}
                     onClick={() => onClaim(a.id)}
                   >
-                    {a.unlocked ? "Claim" : "Locked"}
+                    {a.unlocked ? t("loyalty.claimBtn") : t("loyalty.lockedBtn")}
                   </button>
                 )}
               </div>
@@ -169,9 +176,9 @@ export default function Loyalty() {
       </section>
 
       <section className="mt-24">
-        <h2>🎁 Rewards</h2>
+        <h2>{t("loyalty.rewardsHeading")}</h2>
         {rewards.length === 0 && (
-          <p className="muted">No rewards available right now.</p>
+          <p className="muted">{t("loyalty.rewardsEmpty")}</p>
         )}
         <div
           style={{
@@ -189,14 +196,16 @@ export default function Loyalty() {
                 {r.description}
               </p>
               <div className="row" style={{ marginTop: 8 }}>
-                <span className="tag tag-leaf">{r.points_cost} pts</span>
+                <span className="tag tag-leaf">
+                  {t("loyalty.pointsCostTag", { n: r.points_cost })}
+                </span>
                 <span className="spacer" />
                 <button
                   className="btn btn-secondary btn-xs"
                   disabled={busy || (me.points || 0) < r.points_cost}
                   onClick={() => onRedeem(r.id)}
                 >
-                  Redeem
+                  {t("loyalty.redeem")}
                 </button>
               </div>
             </div>
@@ -205,11 +214,8 @@ export default function Loyalty() {
       </section>
 
       <section className="mt-24 card card-pad-lg">
-        <h2 style={{ marginTop: 0 }}>👥 Refer a friend</h2>
-        <p className="muted">
-          Share your code — you both earn bonus points when they place their
-          first order.
-        </p>
+        <h2 style={{ marginTop: 0 }}>{t("loyalty.referralHeading")}</h2>
+        <p className="muted">{t("loyalty.referralSubhead")}</p>
         {referral?.code && (
           <div className="row" style={{ marginTop: 12 }}>
             <code
@@ -229,14 +235,16 @@ export default function Loyalty() {
               onClick={() => {
                 navigator.clipboard
                   .writeText(referral.code)
-                  .then(() => toast.ok("Copied to clipboard"))
-                  .catch(() => toast.info("Copy failed — try manually"));
+                  .then(() => toast.ok(t("loyalty.copiedToast")))
+                  .catch(() => toast.info(t("loyalty.copyFailedToast")));
               }}
             >
-              📋 Copy
+              {t("loyalty.copyBtn")}
             </button>
             <span className="spacer" />
-            <span className="muted">Used {referral.uses || 0} times</span>
+            <span className="muted">
+              {t("loyalty.usedTimes", { n: referral.uses || 0 })}
+            </span>
           </div>
         )}
         <form
@@ -248,11 +256,11 @@ export default function Loyalty() {
             className="input"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Have a friend's code? Paste it here"
+            placeholder={t("loyalty.codePlaceholder")}
             style={{ flex: 1, maxWidth: 320 }}
           />
           <button className="btn btn-primary" disabled={busy}>
-            Apply code
+            {t("loyalty.applyBtn")}
           </button>
         </form>
       </section>

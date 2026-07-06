@@ -7,6 +7,7 @@ import {
 } from "../api/corporateOrders";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function fmtBDT(n) {
   return `৳${Number(n || 0).toLocaleString("en-IN")}`;
@@ -22,6 +23,7 @@ const STATUS_FLOW = [
 ];
 
 export default function CorporateOrders() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const toast = useToast();
   const isAdmin = user?.role === "admin";
@@ -37,7 +39,6 @@ export default function CorporateOrders() {
   const [notes, setNotes] = useState("");
   const [branding, setBranding] = useState("");
   const [itemsText, setItemsText] = useState(""); // "product_id:qty,product_id:qty"
-
   const load = () => {
     setLoading(true);
     getCorporateOrders()
@@ -67,7 +68,7 @@ export default function CorporateOrders() {
     e.preventDefault();
     const items = parseItems(itemsText);
     if (items.length === 0) {
-      toast.err("Add at least one product (id:qty)");
+      toast.err(t("corporateOrders.emptyItemsError"));
       return;
     }
     try {
@@ -79,7 +80,7 @@ export default function CorporateOrders() {
         branding_needs: branding,
         items,
       });
-      toast.ok("Order submitted — we'll review within 24h");
+      toast.ok(t("corporateOrders.submittedToast"));
       setShowForm(false);
       setCompany("");
       setItemsText("");
@@ -94,7 +95,7 @@ export default function CorporateOrders() {
   const onUpdateStatus = async (id, status) => {
     try {
       await updateCorporateOrderStatus(id, status);
-      toast.ok(`Status → ${status}`);
+      toast.ok(t("corporateOrders.statusChangedToast", { status }));
       load();
       if (active?.id === id) {
         const r = await getCorporateOrders();
@@ -108,11 +109,11 @@ export default function CorporateOrders() {
   };
 
   const onBranding = async (id) => {
-    const text = window.prompt("Describe your custom branding needs");
+    const text = window.prompt(t("corporateOrders.brandingPrompt"));
     if (!text) return;
     try {
       await requestBranding(id, { description: text });
-      toast.ok("Branding request sent");
+      toast.ok(t("corporateOrders.brandingSentToast"));
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
     }
@@ -120,10 +121,9 @@ export default function CorporateOrders() {
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: 8 }}>🏢 Corporate Orders</h1>
+      <h1 style={{ marginBottom: 8 }}>{t("corporateOrders.head")}</h1>
       <p className="muted" style={{ marginBottom: 16 }}>
-        Bulk gifting with custom branding, approval workflow and dedicated
-        account manager.
+        {t("corporateOrders.subhead")}
       </p>
 
       <div className="row mb-16">
@@ -131,16 +131,16 @@ export default function CorporateOrders() {
           className="btn btn-primary"
           onClick={() => setShowForm((s) => !s)}
         >
-          {showForm ? "Cancel" : "➕ New bulk order"}
+          {showForm ? t("corporateOrders.cancelFormBtn") : t("corporateOrders.newOrderBtn")}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={onSubmit} className="card card-pad-lg mb-16">
-          <h3 style={{ marginTop: 0 }}>New corporate order</h3>
+          <h3 style={{ marginTop: 0 }}>{t("corporateOrders.formHeading")}</h3>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
-              <label className="field-label">Company name</label>
+              <label className="field-label">{t("corporateOrders.companyLabel")}</label>
               <input
                 className="input"
                 value={company}
@@ -149,7 +149,7 @@ export default function CorporateOrders() {
               />
             </div>
             <div style={{ width: 120 }}>
-              <label className="field-label">Quantity</label>
+              <label className="field-label">{t("corporateOrders.quantityLabel")}</label>
               <input
                 className="input"
                 type="number"
@@ -159,7 +159,7 @@ export default function CorporateOrders() {
               />
             </div>
             <div style={{ width: 160 }}>
-              <label className="field-label">Budget (৳)</label>
+              <label className="field-label">{t("corporateOrders.budgetLabel")}</label>
               <input
                 className="input"
                 type="number"
@@ -169,42 +169,42 @@ export default function CorporateOrders() {
               />
             </div>
           </div>
-          <label className="field-label mt-8">Items (product_id:qty, …)</label>
+          <label className="field-label mt-8">{t("corporateOrders.itemsLabel")}</label>
           <input
             className="input"
             value={itemsText}
             onChange={(e) => setItemsText(e.target.value)}
-            placeholder="e.g. 1:10, 5:8, 12:2"
+            placeholder={t("corporateOrders.itemsPlaceholder")}
             required
           />
-          <label className="field-label mt-8">Notes</label>
+          <label className="field-label mt-8">{t("corporateOrders.notesLabel")}</label>
           <textarea
             className="input"
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-          <label className="field-label mt-8">Branding needs (optional)</label>
+          <label className="field-label mt-8">{t("corporateOrders.brandingLabel")}</label>
           <textarea
             className="input"
             rows={2}
             value={branding}
             onChange={(e) => setBranding(e.target.value)}
-            placeholder="Logo placement, custom ribbon, etc."
+            placeholder={t("corporateOrders.brandingPlaceholder")}
           />
-          <button className="btn btn-primary mt-8">Submit for review</button>
+          <button className="btn btn-primary mt-8">{t("corporateOrders.submitBtn")}</button>
         </form>
       )}
 
       {loading ? (
         <div className="empty">
           <div className="emoji">⏳</div>
-          <h3>Loading…</h3>
+          <h3>{t("corporateOrders.loadingHeading")}</h3>
         </div>
       ) : orders.length === 0 ? (
         <div className="empty">
           <div className="emoji">📦</div>
-          <h3>No corporate orders yet</h3>
+          <h3>{t("corporateOrders.noOrdersHeading")}</h3>
         </div>
       ) : (
         <div>
@@ -216,15 +216,17 @@ export default function CorporateOrders() {
               onClick={() => setActive(o)}
             >
               <div className="row">
-                <strong>{o.company_name || `Order #${o.id}`}</strong>
+                <strong>{o.company_name || t("corporateOrders.orderFallback", { id: o.id })}</strong>
                 <span className="tag tag-leaf">{o.status}</span>
                 <span className="spacer" />
                 <span className="muted">
-                  {o.quantity} pcs · {fmtBDT(o.budget)}
+                  {t("corporateOrders.qtyPcsBudget", { qty: o.quantity, budget: fmtBDT(o.budget) })}
                 </span>
               </div>
               <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Submitted {new Date(o.created_at).toLocaleDateString()}
+                {t("corporateOrders.submittedOn", {
+                  date: new Date(o.created_at).toLocaleDateString(),
+                })}
               </div>
             </div>
           ))}
@@ -250,19 +252,21 @@ export default function CorporateOrders() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 style={{ marginTop: 0 }}>
-              {active.company_name || `Order #${active.id}`}
+              {active.company_name || t("corporateOrders.orderFallback", { id: active.id })}
             </h2>
-            <p className="muted">Status: <strong>{active.status}</strong></p>
-            <p>Quantity: {active.quantity} pcs</p>
-            <p>Budget: {fmtBDT(active.budget)}</p>
-            {active.notes && <p>Notes: {active.notes}</p>}
+            <p className="muted">
+              {t("corporateOrders.modalStatus")} <strong>{active.status}</strong>
+            </p>
+            <p>{t("corporateOrders.modalQuantity", { qty: active.quantity })}</p>
+            <p>{t("corporateOrders.modalBudget", { budget: fmtBDT(active.budget) })}</p>
+            {active.notes && <p>{t("corporateOrders.modalNotes", { notes: active.notes })}</p>}
             {active.branding_needs && (
-              <p>Branding: {active.branding_needs}</p>
+              <p>{t("corporateOrders.modalBranding", { text: active.branding_needs })}</p>
             )}
 
             {isAdmin && (
               <>
-                <h4>Update status</h4>
+                <h4>{t("corporateOrders.updateStatusHeading")}</h4>
                 <div className="row gap-4" style={{ flexWrap: "wrap" }}>
                   {STATUS_FLOW.map((s) => (
                     <button
@@ -285,7 +289,7 @@ export default function CorporateOrders() {
                 className="btn btn-secondary btn-sm mt-8"
                 onClick={() => onBranding(active.id)}
               >
-                🎨 Add branding request
+                {t("corporateOrders.brandingBtn")}
               </button>
             )}
 
@@ -293,7 +297,7 @@ export default function CorporateOrders() {
               className="btn btn-ghost btn-sm mt-8"
               onClick={() => setActive(null)}
             >
-              Close
+              {t("corporateOrders.closeBtn")}
             </button>
           </div>
         </div>

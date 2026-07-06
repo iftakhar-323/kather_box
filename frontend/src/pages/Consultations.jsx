@@ -5,8 +5,10 @@ import {
   getMyConsultations,
   cancelConsultation,
 } from "../api/consultations";
+import { useTranslation } from "../i18n/I18nProvider";
 
 export default function Consultations() {
+  const { t } = useTranslation();
   const [experts, setExperts] = useState([]);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +45,7 @@ export default function Consultations() {
         scheduled_at: when,
         notes,
       });
-      setMsg(`✓ Booked with ${active.name} on ${when}`);
+      setMsg(t("consultations.bookedToast", { name: active.name, when: when }));
       setActive(null);
       setTopic("");
       setWhen("");
@@ -55,7 +57,7 @@ export default function Consultations() {
   };
 
   const cancel = async (c) => {
-    if (!window.confirm("Cancel this booking?")) return;
+    if (!window.confirm(t("consultations.cancelConfirm"))) return;
     await cancelConsultation(c.ID);
     loadAll();
   };
@@ -63,15 +65,15 @@ export default function Consultations() {
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ marginBottom: 6 }}>Talk to a plant expert 🌱</h1>
-        <p className="muted">Book a one-on-one video session with our horticulturists.</p>
+        <h1 style={{ marginBottom: 6 }}>{t("consultations.head")}</h1>
+        <p className="muted">{t("consultations.subhead")}</p>
       </div>
 
       {msg && <div className="card" style={{ padding: 12, color: "var(--leaf-700)" }}>{msg}</div>}
       {error && <div className="warning">{error}</div>}
 
-      <h2>Our experts</h2>
-      {loading && <div className="empty">Loading…</div>}
+      <h2>{t("consultations.expertsHeading")}</h2>
+      {loading && <div className="empty">…</div>}
       <div className="product-grid">
         {experts.map((e) => (
           <div key={e.name} className="product-card">
@@ -81,10 +83,10 @@ export default function Consultations() {
               <p className="desc">{e.specialty}</p>
               <div className="row" style={{ alignItems: "center" }}>
                 <span className="price">৳{e.rate}</span>
-                <span className="muted" style={{ fontSize: 13 }}>/ session</span>
+                <span className="muted" style={{ fontSize: 13 }}>{t("consultations.perSession")}</span>
               </div>
               <button onClick={() => setActive(e)} className="btn btn-primary btn-block mt-8">
-                Book session
+                {t("consultations.bookBtn")}
               </button>
             </div>
           </div>
@@ -94,21 +96,21 @@ export default function Consultations() {
       {active && (
         <div className="modal-backdrop" onClick={() => setActive(null)}>
           <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={book}>
-            <h3>Book {active.name}</h3>
+            <h3>{t("consultations.modalTitle", { name: active.name })}</h3>
             <p className="muted">{active.specialty}</p>
             <div className="auth-form">
               <div>
-                <label className="field-label">Topic</label>
+                <label className="field-label">{t("consultations.fieldTopic")}</label>
                 <input
                   className="input"
                   required
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g. Yellowing leaves on my pothos"
+                  placeholder={t("consultations.topicPlaceholder")}
                 />
               </div>
               <div>
-                <label className="field-label">Date &amp; time</label>
+                <label className="field-label">{t("consultations.fieldWhen")}</label>
                 <input
                   className="input"
                   type="datetime-local"
@@ -118,31 +120,31 @@ export default function Consultations() {
                 />
               </div>
               <div>
-                <label className="field-label">Notes (optional)</label>
+                <label className="field-label">{t("consultations.fieldNotes")}</label>
                 <textarea
                   className="textarea"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Anything else the expert should know?"
+                  placeholder={t("consultations.notesPlaceholder")}
                 />
               </div>
               <div className="row mt-8">
                 <button type="button" onClick={() => setActive(null)} className="btn btn-ghost">
-                  Cancel
+                  {t("consultations.cancelBtn")}
                 </button>
                 <span className="spacer" />
-                <button type="submit" className="btn btn-primary">Confirm booking</button>
+                <button type="submit" className="btn btn-primary">{t("consultations.confirmBtn")}</button>
               </div>
             </div>
           </form>
         </div>
       )}
 
-      <h2 style={{ marginTop: 32 }}>Your bookings</h2>
+      <h2 style={{ marginTop: 32 }}>{t("consultations.yourBookingsHeading")}</h2>
       {list.length === 0 && !loading && (
         <div className="empty">
           <div className="emoji">📅</div>
-          <h3>No bookings yet</h3>
+          <h3>{t("consultations.noBookingsHeading")}</h3>
         </div>
       )}
       {list.length > 0 && (
@@ -171,7 +173,9 @@ export default function Consultations() {
                 {c.scheduled_at?.replace("T", " ")}
               </div>
               {c.status !== "cancelled" && (
-                <button onClick={() => cancel(c)} className="btn btn-danger btn-sm">Cancel</button>
+                <button onClick={() => cancel(c)} className="btn btn-danger btn-sm">
+                  {t("consultations.cancelBtnRow")}
+                </button>
               )}
             </div>
           ))}

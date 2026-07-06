@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getSeasonalGuide } from "../api/seasonal";
+import { useTranslation } from "../i18n/I18nProvider";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -7,6 +8,7 @@ const MONTHS = [
 ];
 
 export default function Seasonal() {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [active, setActive] = useState(() => MONTHS[new Date().getMonth()]);
   const [loading, setLoading] = useState(true);
@@ -25,17 +27,13 @@ export default function Seasonal() {
       });
   }, []);
 
-  if (loading) return <div className="empty">Loading calendar…</div>;
+  if (loading) return <div className="empty">{t("seasonal.loading")}</div>;
   if (error) return <div className="empty" style={{ color: "#b00020" }}>{error}</div>;
-
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ marginBottom: 6 }}>Seasonal planting guide 🌦️</h1>
-        <p className="muted">
-          A Bangladesh-friendly month-by-month guide of what to plant right now —
-          veggies, herbs and houseplants.
-        </p>
+        <h1 style={{ marginBottom: 6 }}>{t("seasonal.head")}</h1>
+        <p className="muted">{t("seasonal.subhead")}</p>
       </div>
 
       <div className="tabs" style={{ flexWrap: "wrap" }}>
@@ -45,15 +43,22 @@ export default function Seasonal() {
             className={"tab" + (m === active ? " is-active" : "")}
             onClick={() => setActive(m)}
           >
-            {m.slice(0, 3)}
+            {(t("seasonal.months." + m) !== "seasonal.months." + m
+              ? t("seasonal.months." + m)
+              : m
+            ).slice(0, 3)}
           </button>
         ))}
       </div>
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>{active}</h2>
+        <h2 style={{ marginTop: 0 }}>
+          {t("seasonal.months." + active) !== "seasonal.months." + active
+            ? t("seasonal.months." + active)
+            : active}
+        </h2>
         {!data?.[active] ? (
-          <p className="muted">No suggestions for this month.</p>
+          <p className="muted">{t("seasonal.noSuggestions")}</p>
         ) : (
           <div
             className="product-grid"

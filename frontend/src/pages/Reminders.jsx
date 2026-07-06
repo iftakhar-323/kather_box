@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getReminders, completeReminder } from "../api/notifications";
+import { useTranslation } from "../i18n/I18nProvider";
 
 const TYPE_ICON = {
   watering: "💧",
@@ -8,6 +9,7 @@ const TYPE_ICON = {
 };
 
 export default function Reminders() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,21 +51,17 @@ export default function Reminders() {
   return (
     <div className="container">
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ marginBottom: 6 }}>Care reminders 🌿</h1>
-        <p className="muted">
-          Watering, fertilizer and repotting tasks for the plants in your orders.
-          We add a new one automatically when each is marked complete.
-        </p>
+        <h1 style={{ marginBottom: 6 }}>{t("reminders.head")}</h1>
+        <p className="muted">{t("reminders.subhead")}</p>
       </div>
 
-      {loading && <div className="empty">Loading reminders…</div>}
+      {loading && <div className="empty">{t("reminders.loading")}</div>}
       {error && <div className="empty" style={{ color: "#b00020" }}>{error}</div>}
-
       {!loading && !error && items.length === 0 && (
         <div className="empty">
           <div style={{ fontSize: 56 }}>🌵</div>
-          <h3>No upcoming care tasks</h3>
-          <p>Buy a plant from our shop and reminders will appear here.</p>
+          <h3>{t("reminders.noTasksHeading")}</h3>
+          <p>{t("reminders.noTasksBody")}</p>
         </div>
       )}
 
@@ -74,7 +72,6 @@ export default function Reminders() {
             const dueSoon =
               !overdue &&
               new Date(r.next_due_date) - new Date(today) < 3 * 24 * 3600 * 1000;
-
             return (
               <div
                 key={r.id}
@@ -100,11 +97,11 @@ export default function Reminders() {
 
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600 }}>
-                    {r.product?.name || "Plant"}
+                    {r.product?.name || t("reminders.plantFallback")}
                   </div>
                   <div className="muted" style={{ fontSize: 13 }}>
-                    {r.type?.[0].toUpperCase() + r.type?.slice(1)} • every{" "}
-                    {r.interval_days} day(s)
+                    {(r.type?.[0].toUpperCase() + r.type?.slice(1)) || ""} •{" "}
+                    {t("reminders.taskEveryDays", { n: r.interval_days })}
                   </div>
                 </div>
 
@@ -118,7 +115,11 @@ export default function Reminders() {
                       : "status-delivered")
                   }
                 >
-                  {overdue ? "Overdue" : dueSoon ? "Due soon" : "Upcoming"}
+                  {overdue
+                    ? t("reminders.overdue")
+                    : dueSoon
+                    ? t("reminders.dueSoon")
+                    : t("reminders.upcoming")}
                 </span>
 
                 <div className="muted" style={{ width: 110, textAlign: "right" }}>
@@ -130,7 +131,7 @@ export default function Reminders() {
                   onClick={() => markDone(r.id)}
                   disabled={done === r.id}
                 >
-                  {done === r.id ? "✓ Done" : "Mark done"}
+                  {done === r.id ? t("reminders.doneTag") : t("reminders.markDone")}
                 </button>
               </div>
             );

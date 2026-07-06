@@ -7,12 +7,14 @@ import {
 } from "../api/shopping";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function fmtBDT(n) {
   return `৳${Number(n || 0).toLocaleString("en-IN")}`;
 }
 
 export default function GiftCards() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const toast = useToast();
   const [tab, setTab] = useState(user ? "my" : "redeem");
@@ -53,7 +55,7 @@ export default function GiftCards() {
       // redeem, then un-redeem if needed. Simpler: skip server check.
       // Instead of guessing, show the code back to the user.
       setBalance({ code: code.trim(), value_remaining: 0, status: "unknown" });
-      toast.info("Try Redeem — the server will confirm.");
+      toast.info(t("giftCards.tryHint"));
     } catch (e) {
       toast.err(e?.response?.data?.error || e.message);
     } finally {
@@ -65,7 +67,11 @@ export default function GiftCards() {
     setBusy(true);
     try {
       const r = await redeemGiftCard(code.trim());
-      toast.ok(`Redeemed! New card code: ${r.data?.code || "OK"}`);
+      toast.ok(
+        t("giftCards.redeemedToast", {
+          code: r.data?.code || t("giftCards.redeemFallback"),
+        })
+      );
       setCode("");
       setBalance(null);
       load();
@@ -86,7 +92,7 @@ export default function GiftCards() {
         recipient_name: recipientName,
         message,
       });
-      toast.ok(`Gift card issued: ${r.data?.code}`);
+      toast.ok(t("giftCards.issuedToast", { code: r.data?.code }));
       setRecipientEmail("");
       setRecipientName("");
       setMessage("");
@@ -100,9 +106,9 @@ export default function GiftCards() {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: 8 }}>🎁 Gift Cards</h1>
+      <h1 style={{ marginBottom: 8 }}>{t("giftCards.head")}</h1>
       <p className="muted" style={{ marginBottom: 16 }}>
-        Share the green love — gift cards never expire and apply to any order.
+        {t("giftCards.subhead")}
       </p>
 
       <div className="row gap-8 mb-16">
@@ -110,7 +116,7 @@ export default function GiftCards() {
           className={"btn btn-sm " + (tab === "redeem" ? "btn-primary" : "btn-secondary")}
           onClick={() => setTab("redeem")}
         >
-          Redeem
+          {t("giftCards.tabRedeem")}
         </button>
         {user && (
           <>
@@ -118,13 +124,13 @@ export default function GiftCards() {
               className={"btn btn-sm " + (tab === "buy" ? "btn-primary" : "btn-secondary")}
               onClick={() => setTab("buy")}
             >
-              Buy a gift card
+              {t("giftCards.tabBuy")}
             </button>
             <button
               className={"btn btn-sm " + (tab === "my" ? "btn-primary" : "btn-secondary")}
               onClick={() => setTab("my")}
             >
-              My gift cards
+              {t("giftCards.tabMy")}
             </button>
           </>
         )}
@@ -132,11 +138,11 @@ export default function GiftCards() {
 
       {tab === "redeem" && (
         <div className="card card-pad-lg">
-          <h3 style={{ marginTop: 0 }}>Have a code?</h3>
+          <h3 style={{ marginTop: 0 }}>{t("giftCards.redeemHeading")}</h3>
           <form onSubmit={onCheckBalance}>
             <input
               className="input"
-              placeholder="XXXX-XXXX-XXXX"
+              placeholder={t("giftCards.codePlaceholder")}
               value={code}
               onChange={(e) => {
                 setCode(e.target.value.toUpperCase());
@@ -146,7 +152,7 @@ export default function GiftCards() {
             />
             <div className="row mt-8 gap-8">
               <button className="btn btn-secondary" disabled={checking}>
-                {checking ? "Checking…" : "Check balance"}
+                {checking ? t("giftCards.checking") : t("giftCards.checkBalance")}
               </button>
               {balance && (
                 <button
@@ -155,7 +161,7 @@ export default function GiftCards() {
                   disabled={busy || (balance.value_remaining || 0) <= 0}
                   onClick={onRedeem}
                 >
-                  Redeem {fmtBDT(balance.value_remaining)}
+                  {t("giftCards.redeemWithValue", { value: fmtBDT(balance.value_remaining) })}
                 </button>
               )}
             </div>
@@ -177,9 +183,11 @@ export default function GiftCards() {
                 </span>
               </div>
               <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
-                Status: {balance.status || "active"}
+                {t("giftCards.statusLabel")} {balance.status || t("giftCards.statusActive")}
                 {balance.expires_at &&
-                  ` · expires ${new Date(balance.expires_at).toLocaleDateString()}`}
+                  t("giftCards.expiresOn", {
+                    date: new Date(balance.expires_at).toLocaleDateString(),
+                  })}
               </div>
             </div>
           )}
@@ -188,7 +196,7 @@ export default function GiftCards() {
 
       {tab === "buy" && user && (
         <form onSubmit={onBuy} className="card card-pad-lg">
-          <h3 style={{ marginTop: 0 }}>Issue a gift card</h3>
+          <h3 style={{ marginTop: 0 }}>{t("giftCards.buyHeading")}</h3>
 
           {[
             500, 1000, 2000, 5000,
@@ -217,20 +225,20 @@ export default function GiftCards() {
             />
           </div>
 
-          <label className="field-label mt-8">Recipient name</label>
+          <label className="field-label mt-8">{t("giftCards.recipientName")}</label>
           <input
             className="input"
             value={recipientName}
             onChange={(e) => setRecipientName(e.target.value)}
           />
-          <label className="field-label mt-8">Recipient email (optional)</label>
+          <label className="field-label mt-8">{t("giftCards.recipientEmailOptional")}</label>
           <input
             className="input"
             type="email"
             value={recipientEmail}
             onChange={(e) => setRecipientEmail(e.target.value)}
           />
-          <label className="field-label mt-8">Gift message (optional)</label>
+          <label className="field-label mt-8">{t("giftCards.giftMessageOptional")}</label>
           <textarea
             className="input"
             rows={2}
@@ -239,7 +247,7 @@ export default function GiftCards() {
             style={{ resize: "vertical" }}
           />
           <button className="btn btn-primary mt-8" disabled={busy}>
-            {busy ? "Issuing…" : `Issue for ${fmtBDT(amount)}`}
+            {busy ? t("giftCards.issuing") : t("giftCards.issueFor", { amount: fmtBDT(amount) })}
           </button>
         </form>
       )}
@@ -249,7 +257,7 @@ export default function GiftCards() {
           {myCards.length === 0 ? (
             <div className="empty">
               <div className="emoji">🎁</div>
-              <h3>No gift cards yet</h3>
+              <h3>{t("giftCards.myEmptyHeading")}</h3>
             </div>
           ) : (
             myCards.map((c) => (
@@ -269,8 +277,8 @@ export default function GiftCards() {
                   </span>
                 </div>
                 <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                  of {fmtBDT(c.amount)} · {c.status}
-                  {c.recipient_name && ` · to ${c.recipient_name}`}
+                  {t("giftCards.ofAmount", { amount: fmtBDT(c.amount) })} · {c.status}
+                  {c.recipient_name && t("giftCards.toRecipient", { name: c.recipient_name })}
                 </div>
               </div>
             ))
