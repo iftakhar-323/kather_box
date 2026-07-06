@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getMyOrders } from "../api/orders";
+import { useTranslation } from "../i18n/I18nProvider";
 
 const STATUS_FLOW = ["Pending", "Processing", "Packed", "On the Way", "Delivered"];
+const STATUS_KEYS = {
+  "Pending": "orders.placed",
+  "Processing": "orders.paid",
+  "Packed": "orders.shipped",
+  "On the Way": "orders.outForDelivery",
+  "Delivered": "orders.delivered",
+  "Cancelled": "orders.cancelled",
+  "Returned": "orders.returned",
+  "Refunded": "orders.refunded",
+};
 
 function emojiFor(category) {
   if (category === "plant") return "🌿";
@@ -11,6 +22,7 @@ function emojiFor(category) {
 }
 
 function DeliveryTrack({ status, createdAt }) {
+  const { t } = useTranslation();
   const idx = STATUS_FLOW.indexOf(status);
   const ok = idx >= 0;
   const est = new Date(createdAt);
@@ -19,7 +31,7 @@ function DeliveryTrack({ status, createdAt }) {
   return (
     <div className="tracker">
       <div className="est">
-        Estimated delivery: <strong>{est.toLocaleDateString()}</strong>
+        {t("orders.estimatedDelivery")}: <strong>{est.toLocaleDateString()}</strong>
       </div>
       <div className="steps">
         {STATUS_FLOW.map((s, i) => {
@@ -41,7 +53,7 @@ function DeliveryTrack({ status, createdAt }) {
       </div>
       <div className="labels">
         {STATUS_FLOW.map((s) => (
-          <span key={s}>{s}</span>
+          <span key={s}>{t(STATUS_KEYS[s] || "orders.placed")}</span>
         ))}
       </div>
     </div>
@@ -50,6 +62,7 @@ function DeliveryTrack({ status, createdAt }) {
 
 export default function Orders() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -61,7 +74,7 @@ export default function Orders() {
       .then((res) => setOrders(res.data || []))
       .catch((err) => {
         console.error(err);
-        setError("Failed to load orders.");
+        setError(t("orders.loadFailed"));
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -70,8 +83,8 @@ export default function Orders() {
     return (
       <div className="empty" style={{ marginTop: 64 }}>
         <div className="emoji">🔒</div>
-        <h3>Please log in</h3>
-        <p>Sign in to view your orders.</p>
+        <h3>{t("orders.loginTitle")}</h3>
+        <p>{t("orders.loginBody")}</p>
       </div>
     );
   }
@@ -79,7 +92,7 @@ export default function Orders() {
     return (
       <div className="empty">
         <div className="emoji">📦</div>
-        <h3>Loading orders…</h3>
+        <h3>{t("orders.loading")}</h3>
       </div>
     );
   }
@@ -96,13 +109,13 @@ export default function Orders() {
     return (
       <div className="empty" style={{ marginTop: 64 }}>
         <div className="emoji">📭</div>
-        <h3>No orders yet</h3>
-        <p>Place your first order to see it here.</p>
+        <h3>{t("orders.emptyTitle")}</h3>
+        <p>{t("orders.emptyBody")}</p>
         <button
           className="btn btn-primary mt-16"
           onClick={() => window.__katherboxSetView?.("home")}
         >
-          Start shopping
+          {t("orders.emptyAction")}
         </button>
       </div>
     );
@@ -110,7 +123,7 @@ export default function Orders() {
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto" }}>
-      <h2 className="mb-16">My Orders</h2>
+      <h2 className="mb-16">{t("orders.headerTitle")}</h2>
 
       <div className="stack gap-12">
         {orders.map((o) => {
@@ -124,13 +137,13 @@ export default function Orders() {
               >
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <div style={{ fontWeight: 600 }}>
-                    Order #{o.ID}
+                    {t("orders.orderId", { id: o.ID })}
                   </div>
                   <div style={{ fontSize: 12.5, color: "var(--ink-400)" }}>
                     {new Date(o.created_at).toLocaleString()}
                   </div>
                 </div>
-                <span className={statusClass}>{o.status}</span>
+                <span className={statusClass}>{t(STATUS_KEYS[o.status] || "orders.placed")}</span>
                 <div
                   style={{
                     fontFamily: "var(--heading)",
@@ -148,15 +161,15 @@ export default function Orders() {
                   onClick={() => setExpanded(isOpen ? null : o.ID)}
                 >
                   {isOpen
-                    ? "Hide"
-                    : `Items (${o.items?.length || 0})`}
+                    ? t("orders.hide")
+                    : t("orders.itemsToggle", { count: o.items?.length || 0 })}
                 </button>
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={() => window.__katherboxOpenOrder?.(o)}
-                  title="View timeline, request return/refund, download invoice"
+                  title={t("orders.detailsTitle")}
                 >
-                  📍 Details
+                  {t("orders.detailsLabel")}
                 </button>
               </div>
 
@@ -177,10 +190,13 @@ export default function Orders() {
                       >
                         <span>
                           {emojiFor(it.product?.category)}{" "}
-                          {it.product?.name || `Product #${it.product_id}`}
+                          {it.product?.name || t("orders.productFallback", { id: it.product_id })}
                         </span>
                         <span className="muted">
-                          {it.quantity} × ৳{Number(it.price).toFixed(2)}
+                          {t("orders.qtyPrice", {
+                            qty: it.quantity,
+                            price: "৳" + Number(it.price).toFixed(2),
+                          })}
                         </span>
                       </div>
                     ))}

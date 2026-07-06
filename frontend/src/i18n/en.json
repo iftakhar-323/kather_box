@@ -162,7 +162,22 @@
     "delivered": "Delivered",
     "cancelled": "Cancelled",
     "returned": "Returned",
-    "refunded": "Refunded"
+    "refunded": "Refunded",
+    "headerTitle": "My Orders",
+    "loginTitle": "Please log in",
+    "loginBody": "Sign in to view your orders.",
+    "loading": "Loading orders…",
+    "loadFailed": "Failed to load orders.",
+    "emptyTitle": "No orders yet",
+    "emptyBody": "Place your first order to see it here.",
+    "emptyAction": "Start shopping",
+    "orderId": "Order #{{id}}",
+    "itemsToggle": "Items ({{count}})",
+    "hide": "Hide",
+    "detailsLabel": "📍 Details",
+    "detailsTitle": "View timeline, request return/refund, download invoice",
+    "productFallback": "Product #{{id}}",
+    "qtyPrice": "{{qty}} × {{price}}"
   },
   "auth": {
     "welcomeBack": "Welcome back",
