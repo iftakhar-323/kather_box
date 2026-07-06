@@ -9,6 +9,7 @@ import {
   getEstimatedDelivery,
 } from "../api/orderExt";
 import { useToast } from "../components/Toast";
+import { useTranslation } from "../i18n/I18nProvider";
 
 function fmtDate(s) {
   if (!s) return "";
@@ -44,6 +45,7 @@ const TIMELINE_ICONS = {
 };
 
 export default function OrderDetail({ order, onBack }) {
+  const { t } = useTranslation();
   const toast = useToast();
   const [events, setEvents] = useState([]);
   const [est, setEst] = useState(null);
@@ -55,7 +57,10 @@ export default function OrderDetail({ order, onBack }) {
 
   const load = () => {
     setLoading(true);
-    Promise.all([getOrderTimeline(order.id), getEstimatedDelivery(order.id).catch(() => ({ data: null }))])
+    Promise.all([
+      getOrderTimeline(order.id),
+      getEstimatedDelivery(order.id).catch(() => ({ data: null })),
+    ])
       .then(([tl, ed]) => {
         setEvents(tl.data || []);
         setEst(ed.data || null);
@@ -71,19 +76,19 @@ export default function OrderDetail({ order, onBack }) {
 
   const onViewInvoice = () => {
     openInvoice(order.id)
-      .then(() => toast.ok("Invoice opened — press Ctrl/Cmd+P to save as PDF"))
-      .catch(() => toast.err("Could not open invoice"));
+      .then(() => toast.ok(t("orderDetail.invoiceOpen")))
+      .catch(() => toast.err(t("orderDetail.invoiceFail")));
   };
   const onViewReceipt = () => {
     openReceipt(order.id)
-      .then(() => toast.ok("Receipt opened"))
-      .catch(() => toast.err("Could not open receipt"));
+      .then(() => toast.ok(t("orderDetail.receiptOpen")))
+      .catch(() => toast.err(t("orderDetail.receiptFail")));
   };
 
   const onSubmitAction = async (e) => {
     e.preventDefault();
     if (!reason.trim()) {
-      toast.err("Please add a reason");
+      toast.err(t("orderDetail.addReason"));
       return;
     }
     setBusy(true);
@@ -94,9 +99,13 @@ export default function OrderDetail({ order, onBack }) {
         exchange: requestExchange,
       }[action];
       await fn(order.id, { reason: reason.trim(), notes: details });
-      toast.ok(
-        `${action[0].toUpperCase() + action.slice(1)} request sent`
-      );
+      const successKey =
+        action === "return"
+          ? "orderDetail.submitReturn"
+          : action === "refund"
+          ? "orderDetail.submitRefund"
+          : "orderDetail.submitExchange";
+      toast.ok(t(successKey));
       setAction(null);
       setReason("");
       setDetails("");
@@ -117,30 +126,47 @@ export default function OrderDetail({ order, onBack }) {
     Cancelled: "tag-rose",
   }[order.status] || "tag-bark";
 
+  const statusLabelKey = {
+    Pending: "orderDetail.status.pending",
+    Processing: "orderDetail.status.processing",
+    Packed: "orderDetail.status.packed",
+    "On the Way": "orderDetail.status.on_the_way",
+    Delivered: "orderDetail.status.delivered",
+    Cancelled: "orderDetail.status.cancelled",
+  }[order.status];
+
+  const actionLabel = action
+    ? action[0].toUpperCase() + action.slice(1)
+    : "";
+
   return (
     <div style={{ maxWidth: 760, margin: "0 auto" }}>
       <button onClick={onBack} className="btn btn-ghost mb-16">
-        ← Back to orders
+        {t("orderDetail.backToOrders")}
       </button>
 
       <div
         className="row gap-8"
         style={{ alignItems: "center", flexWrap: "wrap" }}
       >
-        <h1 style={{ margin: 0 }}>Order #{order.id}</h1>
-        <span className={"tag " + statusColor}>{order.status}</span>
+        <h1 style={{ margin: 0 }}>{t("orderDetail.orderId", { id: order.id })}</h1>
+        <span className={"tag " + statusColor}>
+          {statusLabelKey ? t(statusLabelKey) : order.status}
+        </span>
       </div>
       <p className="muted">
-        Placed {fmtDate(order.created_at)} · Total ৳
-        {Number(order.total_price || 0).toLocaleString()}
+        {t("orderDetail.placedOn", {
+          date: fmtDate(order.created_at),
+          total: Number(order.total_price || 0).toLocaleString(),
+        })}
       </p>
 
       <div className="row gap-8 mb-16" style={{ flexWrap: "wrap" }}>
         <button className="btn btn-secondary btn-sm" onClick={onViewInvoice}>
-          🧾 View / print invoice
+          {t("orderDetail.viewInvoice")}
         </button>
         <button className="btn btn-secondary btn-sm" onClick={onViewReceipt}>
-          🧾 View receipt
+          {t("orderDetail.viewReceipt")}
         </button>
         <span className="spacer" />
         {order.status === "Delivered" && (
@@ -149,19 +175,19 @@ export default function OrderDetail({ order, onBack }) {
               className="btn btn-secondary btn-sm"
               onClick={() => setAction("return")}
             >
-              ↩️ Return
+              {t("orderDetail.return")}
             </button>
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setAction("refund")}
             >
-              💸 Refund
+              {t("orderDetail.refund")}
             </button>
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setAction("exchange")}
             >
-              🔄 Exchange
+              {t("orderDetail.exchange")}
             </button>
           </>
         )}
@@ -170,17 +196,19 @@ export default function OrderDetail({ order, onBack }) {
       {action && (
         <form onSubmit={onSubmitAction} className="card card-pad-lg mb-16">
           <h3 style={{ marginTop: 0 }}>
-            {action[0].toUpperCase() + action.slice(1)} request
+            {t("orderDetail.actionRequestTitle", { action: actionLabel })}
           </h3>
-          <label className="field-label">Reason *</label>
+          <label className="field-label">{t("orderDetail.reasonLabel")}</label>
           <input
             className="input"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             required
-            placeholder="e.g. Damaged on arrival"
+            placeholder={t("orderDetail.reasonPlaceholder")}
           />
-          <label className="field-label mt-8">Details (optional)</label>
+          <label className="field-label mt-8">
+            {t("orderDetail.detailsLabel")}
+          </label>
           <textarea
             className="input"
             rows={3}
@@ -190,42 +218,56 @@ export default function OrderDetail({ order, onBack }) {
           />
           <div className="row mt-8" style={{ gap: 8 }}>
             <button className="btn btn-primary" disabled={busy}>
-              {busy ? "Sending…" : "Submit"}
+              {busy ? t("orderDetail.sending") : t("orderDetail.submit")}
             </button>
             <button
               type="button"
               className="btn btn-ghost"
               onClick={() => setAction(null)}
             >
-              Cancel
+              {t("actions.cancel")}
             </button>
           </div>
         </form>
       )}
 
       {est && (
-        <div className="card card-pad-lg mb-16" style={{ background: "var(--leaf-50)" }}>
-          <h3 style={{ marginTop: 0 }}>📦 Estimated delivery</h3>
+        <div
+          className="card card-pad-lg mb-16"
+          style={{ background: "var(--leaf-50)" }}
+        >
+          <h3 style={{ marginTop: 0 }}>{t("orderDetail.estTitle")}</h3>
           {est.status === "delivered" ? (
             <p>
-              ✅ Delivered on <strong>{est.delivered_at}</strong>
+              {t("orderDetail.estDelivered", {
+                date: est.delivered_at,
+              })}
             </p>
           ) : est.status === "cancelled" ? (
-            <p>❌ Order cancelled — no delivery expected.</p>
+            <p>{t("orderDetail.estCancelled")}</p>
           ) : (
             <>
               <p style={{ margin: "4px 0" }}>
-                Between{" "}
-                <strong>{est.earliest}</strong> and{" "}
-                <strong>{est.latest}</strong>
+                {t("orderDetail.estBetween", {
+                  earliest: est.earliest,
+                  latest: est.latest,
+                })}
               </p>
               <p className="muted" style={{ margin: 0, fontSize: 13 }}>
                 {est.shipped_at
-                  ? `Shipped on ${est.shipped_at} · ${est.business_days} business day transit`
-                  : `${est.business_days} business day transit (Dhaka 2d · major cities 4d · remote 7d)`}
+                  ? t("orderDetail.estShipped", {
+                      date: est.shipped_at,
+                      days: est.business_days,
+                    })
+                  : t("orderDetail.estTransit", {
+                      days: est.business_days,
+                    })}
               </p>
               {est.note && (
-                <p className="muted" style={{ margin: "8px 0 0", fontSize: 12 }}>
+                <p
+                  className="muted"
+                  style={{ margin: "8px 0 0", fontSize: 12 }}
+                >
                   {est.note}
                 </p>
               )}
@@ -234,11 +276,11 @@ export default function OrderDetail({ order, onBack }) {
         </div>
       )}
 
-      <h2>📍 Timeline</h2>
+      <h2>{t("orderDetail.timelineTitle")}</h2>
       {loading ? (
-        <p className="muted">Loading…</p>
+        <p className="muted">{t("orderDetail.loading")}</p>
       ) : events.length === 0 ? (
-        <p className="muted">No events yet.</p>
+        <p className="muted">{t("orderDetail.noEvents")}</p>
       ) : (
         <div
           style={{
