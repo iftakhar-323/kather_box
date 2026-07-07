@@ -13,9 +13,10 @@ func AdminRoutes(router *gin.Engine) {
 	g.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
 		g.GET("/orders", controllers.GetAllOrders)
+		g.POST("/orders", controllers.CreateAdminOrder)
 		g.PUT("/orders/:id/status", controllers.UpdateOrderStatus)
 		g.DELETE("/orders/:id", controllers.DeleteOrder)
-		g.GET("/analytics", controllers.AnalyticsSummary)
+		g.GET("/analytics", controllers.GetAdminAnalytics)
 
 		// reminders
 		g.GET("/reminders", controllers.AdminListReminders)

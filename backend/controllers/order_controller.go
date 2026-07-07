@@ -236,3 +236,95 @@ func DeleteOrder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Order deleted"})
 }
+
+// AdminOrderItemInput — single line the admin enters into the new order form.
+type AdminOrderItemInput struct {
+	ProductID uint `json:"product_id" binding:"required"`
+	Quantity  uint `json:"quantity" binding:"required,min=1"`
+}
+
+// CreateAdminOrderInput — payload for POST /api/admin/orders.
+// Admin can place an order on behalf of any user (e.g. phone orders).
+type CreateAdminOrderInput struct {
+	UserID   uint                 `json:"user_id" binding:"required"`
+	Items    []AdminOrderItemInput `json:"items" binding:"required,min=1,dive"`
+	Status   string               `json:"status"`
+	GiftWrap bool                 `json:"gift_wrap"`
+}
+
+// POST /api/admin/orders - admin creates an order on behalf of a user.
+func CreateAdminOrder(c *gin.Context) {
+	var input CreateAdminOrderInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// user must exist
+	var user models.User
+	if err := database.DB.First(&user, input.UserID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// resolve products and compute total, with stock check
+	var orderItems []models.OrderItem
+	var totalPrice float64
+	for _, line := range input.Items {
+		var p models.Product
+		if err := database.DB.First(&p, line.ProductID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Product " + uintToStr(line.ProductID) + " not found"})
+			return
+		}
+		if p.Stock < line.Quantity {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Insufficient stock for " + p.Name})
+			return
+		}
+		orderItems = append(orderItems, models.OrderItem{
+			ProductID: p.ID,
+			Quantity:  line.Quantity,
+			Price:     p.Price,
+		})
+		totalPrice += p.Price * float64(line.Quantity)
+	}
+
+	status := input.Status
+	if status == "" {
+		status = "Pending"
+	}
+	if status != "Pending" && status != "Processing" && status != "Packed" &&
+		status != "On the Way" && status != "Delivered" && status != "Cancelled" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status"})
+		return
+	}
+
+	order := models.Order{
+		UserID:     input.UserID,
+		TotalPrice: totalPrice,
+		Status:     status,
+		GiftWrap:   input.GiftWrap,
+		Items:      orderItems,
+	}
+	if err := database.DB.Create(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create order"})
+		return
+	}
+
+	// decrement stock for each line
+	for _, line := range input.Items {
+		database.DB.Model(&models.Product{}).
+			Where("id = ?", line.ProductID).
+			Update("stock", gorm.Expr("CASE WHEN stock >= ? THEN stock - ? ELSE stock END",
+				line.Quantity, line.Quantity))
+	}
+
+	// notify the user
+	database.DB.Create(&models.Notification{
+		UserID:  order.UserID,
+		Message: "Order #" + uintToStr(order.ID) + " was placed on your behalf (status: " + order.Status + ")",
+		Type:    "order_update",
+	})
+
+	database.DB.Preload("Items.Product").First(&order, order.ID)
+	c.JSON(http.StatusCreated, gin.H{"order": order})
+}

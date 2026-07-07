@@ -32,6 +32,12 @@ export const ThemeStore = {
       document.documentElement.setAttribute("data-theme", val);
     }
   },
+  init: () => {
+    const v = read("theme", "light");
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", v);
+    }
+  },
 };
 
 // ---------- Recently viewed (max 8) ----------

@@ -10,6 +10,10 @@ export const getMe = () => API.get("/auth/me");
 // GET /api/admin/orders - all orders across all users
 export const getAllOrders = () => API.get("/admin/orders");
 
+// POST /api/admin/orders - admin creates an order on behalf of a user.
+// Body: { user_id, status?, gift_wrap?, items:[{product_id, quantity}] }
+export const createAdminOrder = (payload) => API.post("/admin/orders", payload);
+
 // PUT /api/admin/orders/:id/status
 export const updateOrderStatus = (id, status) =>
   API.put(`/admin/orders/${id}/status`, { status });

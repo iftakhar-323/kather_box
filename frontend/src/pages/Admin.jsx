@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import API from "../api/axios";
 import {
   getAllOrders,
+  createAdminOrder,
   updateOrderStatus,
   deleteOrder,
   getAnalytics,
@@ -34,6 +35,13 @@ import {
   deleteBlogPost,
   getBlogCategories,
 } from "../api/blog";
+import { listProductReviews, deleteReview as adminDeleteReview } from "../api/reviews";
+import {
+  listCategories,
+  adminCreateCategory,
+  adminUpdateCategory,
+  adminDeleteCategory,
+} from "../api/categories";
 import { useToast } from "../components/Toast";
 
 const STATUS_OPTIONS = [
@@ -188,6 +196,20 @@ export default function Admin() {
         >
           ↩ Returns
         </button>
+        <button
+          role="tab"
+          className={"tab" + (tab === "reviews" ? " is-active" : "")}
+          onClick={() => setTab("reviews")}
+        >
+          ★ Reviews
+        </button>
+        <button
+          role="tab"
+          className={"tab" + (tab === "categories" ? " is-active" : "")}
+          onClick={() => setTab("categories")}
+        >
+          🗂 Categories
+        </button>
       </div>
 
       {authError && <div className="warning">{authError}</div>}
@@ -205,6 +227,8 @@ export default function Admin() {
       {tab === "backup" && <BackupTools />}
       {tab === "roles" && <RolesAdmin />}
       {tab === "returns" && <ReturnsAdmin />}
+      {tab === "reviews" && <ReviewsAdmin />}
+      {tab === "categories" && <CategoriesAdmin />}
     </div>
   );
 }
@@ -378,7 +402,7 @@ function BlogCMS() {
           ) : (
             posts.map((p) => (
               <div
-                key={p.id}
+                key={p.id ?? p.ID}
                 className="row-card"
                 style={{ borderRadius: 0, borderBottom: "1px solid var(--leaf-100)" }}
               >
@@ -389,7 +413,7 @@ function BlogCMS() {
                     {p.category_name || "—"} · {p.status}
                   </div>
                 </div>
-                <button className="btn btn-danger btn-sm" onClick={() => onDelete(p.id)}>
+                <button className="btn btn-danger btn-sm" onClick={() => onDelete(p.id ?? p.ID)}>
                   Delete
                 </button>
               </div>
@@ -575,7 +599,7 @@ function RolesAdmin() {
 
   const onRoleChange = async (u, role) => {
     try {
-      await updateUserRole(u.id, role);
+      await updateUserRole(u.id ?? u.ID, role);
       toast.ok(`${u.name} → ${role}`);
       load();
     } catch (e) {
@@ -607,7 +631,7 @@ function RolesAdmin() {
           ) : (
             filtered.map((u) => (
               <div
-                key={u.id}
+                key={u.id ?? u.ID}
                 className="row-card"
                 style={{
                   borderRadius: 0,
@@ -665,7 +689,8 @@ function ReturnsAdmin() {
     setLoading(true);
     import("../api/orderExt").then((m) =>
       m.getReturns().then((r) => {
-        setRows(r.data?.returns || r.data?.items || []);
+        const d = r.data;
+        setRows(Array.isArray(d) ? d : d?.returns || d?.items || []);
         setLoading(false);
       })
     );
@@ -697,12 +722,12 @@ function ReturnsAdmin() {
         <div className="table">
           {rows.map((r) => (
             <div
-              key={r.id}
+              key={r.id ?? r.ID}
               className="card card-pad mb-8"
             >
               <div className="row">
                 <strong>
-                  #{r.order_id || r.ID} · {r.type || "return"}
+                  #{r.order_id ?? r.ID} · {r.type || "return"}
                 </strong>
                 <span className="tag tag-leaf">{r.status}</span>
               </div>
@@ -710,19 +735,19 @@ function ReturnsAdmin() {
               <div className="row" style={{ gap: 6, marginTop: 6 }}>
                 <button
                   className="btn btn-primary btn-xs"
-                  onClick={() => onUpdate(r.id, "approved")}
+                  onClick={() => onUpdate(r.id ?? r.ID, "approved")}
                 >
                   Approve
                 </button>
                 <button
                   className="btn btn-danger btn-xs"
-                  onClick={() => onUpdate(r.id, "rejected")}
+                  onClick={() => onUpdate(r.id ?? r.ID, "rejected")}
                 >
                   Reject
                 </button>
                 <button
                   className="btn btn-secondary btn-xs"
-                  onClick={() => onUpdate(r.id, "refunded")}
+                  onClick={() => onUpdate(r.id ?? r.ID, "refunded")}
                 >
                   Mark refunded
                 </button>
@@ -744,7 +769,7 @@ function AdminRemindersTab() {
     try {
       setLoading(true);
       const data = await adminListReminders();
-      setRows(data || []);
+      setRows(Array.isArray(data) ? data : data?.items || []);
       setError(null);
     } catch (e) {
       setError(e?.response?.data?.error || "Failed to load");
@@ -782,8 +807,8 @@ function AdminRemindersTab() {
         <div></div>
       </div>
       {rows.map((r) => (
-        <div className="trow" key={r.id}>
-          <div>{r.user_email}</div>
+        <div className="trow" key={r.id ?? r.ID}>
+          <div>{r.user_email || `#${r.user_id}`}</div>
           <div>{r.product_name || `#${r.product_id}`}</div>
           <div>{r.type}</div>
           <div>{r.next_due_date}</div>
@@ -795,7 +820,7 @@ function AdminRemindersTab() {
           </div>
           <div>
             {!r.completed && (
-              <button className="btn btn-sm btn-primary" onClick={() => onComplete(r.id)}>
+              <button className="btn btn-sm btn-primary" onClick={() => onComplete(r.id ?? r.ID)}>
                 Mark done
               </button>
             )}
@@ -815,7 +840,7 @@ function AdminSubscriptionsTab() {
     try {
       setLoading(true);
       const data = await adminListSubscriptions();
-      setRows(data || []);
+      setRows(Array.isArray(data) ? data : data?.items || []);
       setError(null);
     } catch (e) {
       setError(e?.response?.data?.error || "Failed to load");
@@ -853,19 +878,19 @@ function AdminSubscriptionsTab() {
         <div></div>
       </div>
       {rows.map((s) => (
-        <div className="trow" key={s.id}>
-          <div>{s.user_email}</div>
-          <div>{s.plan}</div>
+        <div className="trow" key={s.id ?? s.ID}>
+          <div>{s.user_email || `#${s.user_id}`}</div>
+          <div>{s.plan_name || s.plan || "-"}</div>
           <div>every {s.interval_days}d</div>
           <div>{s.next_delivery || "-"}</div>
           <div>
-            <span className={"pill " + (s.active ? "pill-active" : "pill-cancel")}>
-              {s.active ? "Active" : "Cancelled"}
+            <span className={"pill " + (s.status === "active" ? "pill-active" : "pill-cancel")}>
+              {s.status || "—"}
             </span>
           </div>
           <div>
-            {s.active && (
-              <button className="btn btn-sm btn-danger" onClick={() => onCancel(s.id)}>
+            {s.status === "active" && (
+              <button className="btn btn-sm btn-danger" onClick={() => onCancel(s.id ?? s.ID)}>
                 Cancel
               </button>
             )}
@@ -885,7 +910,7 @@ function AdminConsultationsTab() {
     try {
       setLoading(true);
       const data = await adminListConsultations();
-      setRows(data || []);
+      setRows(Array.isArray(data) ? data : data?.items || []);
       setError(null);
     } catch (e) {
       setError(e?.response?.data?.error || "Failed to load");
@@ -920,34 +945,35 @@ function AdminConsultationsTab() {
   if (loading) return <div className="muted">Loading consultations…</div>;
   if (error) return <div className="warning">{error}</div>;
   if (!rows.length) return <div className="muted">No consultations booked.</div>;
-
   return (
     <div className="table">
       <div className="thead">
         <div>User</div>
+        <div>Expert</div>
         <div>Topic</div>
         <div>Date</div>
         <div>Status</div>
         <div></div>
       </div>
       {rows.map((c) => (
-        <div className="trow" key={c.id}>
-          <div>{c.user_email}</div>
-          <div>{c.topic}</div>
-          <div>{c.preferred_date}</div>
+        <div className="trow" key={c.id ?? c.ID}>
+          <div>{c.user_email || `#${c.user_id}`}</div>
+          <div>{c.expert_name || "-"}</div>
+          <div>{c.topic || "-"}</div>
+          <div>{c.scheduled_at || c.preferred_date || "-"}</div>
           <div>
             <span className={"pill " + (c.status || "pending").toLowerCase().replace(/\s+/g, "-")}>
-              {c.status}
+              {c.status || "—"}
             </span>
           </div>
           <div className="row gap">
-            {c.status !== "Confirmed" && (
-              <button className="btn btn-sm btn-primary" onClick={() => onConfirm(c.id)}>
+            {c.status !== "Confirmed" && c.status !== "confirmed" && c.status !== "completed" && (
+              <button className="btn btn-sm btn-primary" onClick={() => onConfirm(c.id ?? c.ID)}>
                 Confirm
               </button>
             )}
-            {c.status !== "Cancelled" && (
-              <button className="btn btn-sm btn-danger" onClick={() => onCancel(c.id)}>
+            {c.status !== "Cancelled" && c.status !== "cancelled" && (
+              <button className="btn btn-sm btn-danger" onClick={() => onCancel(c.id ?? c.ID)}>
                 Cancel
               </button>
             )}
@@ -968,7 +994,7 @@ function AdminCorporateTab() {
     try {
       setLoading(true);
       const data = await adminListCorporate();
-      setRows(data || []);
+      setRows(Array.isArray(data) ? data : data?.items || []);
       setError(null);
     } catch (e) {
       setError(e?.response?.data?.error || "Failed to load");
@@ -994,58 +1020,62 @@ function AdminCorporateTab() {
   if (loading) return <div className="muted">Loading corporate quotes…</div>;
   if (error) return <div className="warning">{error}</div>;
   if (!rows.length) return <div className="muted">No corporate quotes yet.</div>;
-
   return (
     <div className="stack">
-      {rows.map((q) => (
-        <div className="card" key={q.id}>
-          <div className="row spread">
-            <div>
-              <strong>{q.company_name}</strong> — {q.user_email}
+      {rows.map((q) => {
+        const status = (q.status || "pending").toLowerCase();
+        let recipients = [];
+        try { recipients = JSON.parse(q.recipients || "[]"); } catch (_) {}
+        return (
+          <div className="card" key={q.id ?? q.ID}>
+            <div className="row spread">
+              <div>
+                <strong>{q.company_name || "(no company)"}</strong> — {q.contact_name || q.contact_email || q.user_email || `#${q.user_id}`}
+              </div>
+              <div>
+                <span className={"pill " + status}>
+                  {q.status}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className={"pill " + (q.status || "pending").toLowerCase()}>
-                {q.status}
-              </span>
+            <div className="muted small">
+              {recipients.length} recipients · ৳{q.budget_per_gift || 0}/gift · total ৳{q.total_estimate || 0}
+            </div>
+            <div className="small">{q.message || <span className="muted">No message</span>}</div>
+            <div className="small">
+              <em>Admin notes:</em> {q.admin_notes || <span className="muted">none</span>}
+            </div>
+            <div className="row gap" style={{ marginTop: 8 }}>
+              <input
+                className="input"
+                placeholder="Notes (optional)"
+                value={notes[q.id ?? q.ID] || ""}
+                onChange={(e) => setNotes((n) => ({ ...n, [q.id ?? q.ID]: e.target.value }))}
+              />
+              {status === "pending" && (
+                <>
+                  <button className="btn btn-sm btn-primary" onClick={() => updateStatus(q.id ?? q.ID, "quoted")}>
+                    Mark Quoted
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => updateStatus(q.id ?? q.ID, "cancelled")}>
+                    Reject
+                  </button>
+                </>
+              )}
+              {status === "quoted" && (
+                <>
+                  <button className="btn btn-sm btn-primary" onClick={() => updateStatus(q.id ?? q.ID, "accepted")}>
+                    Accept
+                  </button>
+                  <button className="btn btn-sm btn-secondary" onClick={() => updateStatus(q.id ?? q.ID, "delivered")}>
+                    Mark Delivered
+                  </button>
+                </>
+              )}
             </div>
           </div>
-          <div className="muted small">
-            {q.quantity} units · budget ৳{q.budget} · event {q.event_date || "n/a"}
-          </div>
-          <div className="small">{q.message}</div>
-          <div className="small">
-            <em>Admin notes:</em> {q.admin_notes || <span className="muted">none</span>}
-          </div>
-          <div className="row gap" style={{ marginTop: 8 }}>
-            <input
-              className="input"
-              placeholder="Notes (optional)"
-              value={notes[q.id] || ""}
-              onChange={(e) => setNotes((n) => ({ ...n, [q.id]: e.target.value }))}
-            />
-            {q.status === "Pending" && (
-              <>
-                <button className="btn btn-sm btn-primary" onClick={() => updateStatus(q.id, "Quoted")}>
-                  Mark Quoted
-                </button>
-                <button className="btn btn-sm btn-danger" onClick={() => updateStatus(q.id, "Cancelled")}>
-                  Reject
-                </button>
-              </>
-            )}
-            {q.status === "Quoted" && (
-              <>
-                <button className="btn btn-sm btn-primary" onClick={() => updateStatus(q.id, "Accepted")}>
-                  Accept
-                </button>
-                <button className="btn btn-sm btn-secondary" onClick={() => updateStatus(q.id, "Delivered")}>
-                  Mark Delivered
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -1061,7 +1091,7 @@ function ProductsTab() {
   const load = () => {
     setLoading(true);
     API.get("/products/")
-      .then((res) => setProducts(res.data))
+      .then((res) => setProducts(res.data?.items || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   };
@@ -1342,15 +1372,33 @@ function ProductForm({ initial, onClose, onSaved }) {
 // ============ Orders Tab ============
 function OrdersTab() {
   const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showForm, setShowForm] = useState(false);
+
+  const userById = useMemo(() => {
+    const m = new Map();
+    users.forEach((u) => m.set(u.id ?? u.ID, u));
+    return m;
+  }, [users]);
 
   const load = () => {
     setLoading(true);
-    getAllOrders()
-      .then((res) => setOrders(res.data || []))
-      .catch((err) => setError(err.response?.data?.error || err.message))
-      .finally(() => setLoading(false));
+    Promise.all([getAllOrders(), getAllUsers().catch(() => ({ data: { items: [] } }))])
+      .then(([ordersRes, usersRes]) => {
+        setOrders(ordersRes.data || []);
+        // /api/admin/users returns { items: [...] }; some endpoints return a bare array.
+        const u = usersRes.data;
+        setUsers(Array.isArray(u) ? u : u?.items || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.response?.data?.error || err.message);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -1367,7 +1415,7 @@ function OrdersTab() {
   };
 
   const remove = async (order) => {
-    if (!window.confirm(`Delete order #${order.ID}?`)) return;
+    if (!window.confirm(`Delete order #${order.ID}? Stock will be restored.`)) return;
     try {
       await deleteOrder(order.ID);
       load();
@@ -1376,8 +1424,60 @@ function OrdersTab() {
     }
   };
 
+  const userLabel = (uid) => {
+    const u = userById.get(uid);
+    if (!u) return `User #${uid}`;
+    return `${u.name} (${u.email})`;
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (statusFilter !== "all" && o.status !== statusFilter) return false;
+      if (!q) return true;
+      if (String(o.ID).includes(q)) return true;
+      if (String(o.user_id).includes(q)) return true;
+      if (userLabel(o.user_id).toLowerCase().includes(q)) return true;
+      if (o.status?.toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }, [orders, search, statusFilter, users]);
+
   return (
     <div>
+      <div className="row mt-16 mb-16 gap-8" style={{ flexWrap: "wrap" }}>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowForm(true)}
+        >
+          + New Order
+        </button>
+        <input
+          className="input"
+          style={{ maxWidth: 280 }}
+          placeholder="Search by #id, user, status…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          className="select"
+          style={{ maxWidth: 180 }}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">All statuses</option>
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <span className="spacer" />
+        <span className="muted" style={{ fontSize: 13 }}>
+          {filtered.length} of {orders.length} order{orders.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
       {loading && (
         <div className="empty">
           <div className="emoji">📋</div>
@@ -1385,6 +1485,17 @@ function OrdersTab() {
         </div>
       )}
       {error && <div className="warning">{error}</div>}
+
+      {showForm && (
+        <OrderForm
+          users={users}
+          onClose={() => setShowForm(false)}
+          onSaved={() => {
+            setShowForm(false);
+            load();
+          }}
+        />
+      )}
 
       {!loading && !error && (
         <div className="table-wrap">
@@ -1401,15 +1512,15 @@ function OrdersTab() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => (
+              {filtered.map((o) => (
                 <tr key={o.ID}>
                   <td style={{ fontWeight: 600 }}>#{o.ID}</td>
-                  <td>User #{o.user_id}</td>
+                  <td>{userLabel(o.user_id)}</td>
                   <td>{new Date(o.created_at).toLocaleDateString()}</td>
                   <td>
                     <div className="stack gap-4">
                       {(o.items || []).map((it) => (
-                        <div key={it.id} style={{ fontSize: 13 }}>
+                        <div key={it.id ?? it.ID} style={{ fontSize: 13 }}>
                           {it.product?.name || `#${it.product_id}`}{" "}
                           <span className="muted">× {it.quantity}</span>
                         </div>
@@ -1443,12 +1554,12 @@ function OrdersTab() {
                   </td>
                 </tr>
               ))}
-              {orders.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
                   <td colSpan="7">
                     <div className="empty" style={{ padding: 24 }}>
                       <div className="emoji">📭</div>
-                      <h3>No orders yet</h3>
+                      <h3>No orders match your filters</h3>
                     </div>
                   </td>
                 </tr>
@@ -1457,6 +1568,223 @@ function OrdersTab() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============ New Order (admin) modal ============
+function OrderForm({ users, onClose, onSaved }) {
+  const firstId = users[0]?.id ?? users[0]?.ID;
+  const [userId, setUserId] = useState(firstId ? String(firstId) : "");
+  const [status, setStatus] = useState("Pending");
+  const [giftWrap, setGiftWrap] = useState(false);
+  const [productOpts, setProductOpts] = useState([]);
+  const [lines, setLines] = useState([{ product_id: "", quantity: 1 }]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Pull product catalog so admin can pick items.
+  useEffect(() => {
+    API.get("/products/?limit=200&sort=newest")
+      .then((res) => setProductOpts(res.data?.items || []))
+      .catch(() => setProductOpts([]));
+  }, []);
+
+  // If users list loads after the form mounts, default the picker to the first one.
+  useEffect(() => {
+    if (!userId && users.length) {
+      const first = users[0];
+      setUserId(String(first.id ?? first.ID));
+    }
+  }, [users, userId]);
+
+  const updateLine = (i, patch) =>
+    setLines(lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+
+  const addLine = () =>
+    setLines([...lines, { product_id: "", quantity: 1 }]);
+
+  const removeLine = (i) =>
+    setLines(lines.length > 1 ? lines.filter((_, idx) => idx !== i) : lines);
+
+  const computedTotal = useMemo(() => {
+    return lines.reduce((sum, l) => {
+      const p = productOpts.find((x) => String(x.ID) === String(l.product_id));
+      const price = p ? Number(p.price) : 0;
+      const qty = Number(l.quantity) || 0;
+      return sum + price * qty;
+    }, 0);
+  }, [lines, productOpts]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!userId) {
+      setError("Please pick a user.");
+      return;
+    }
+    const cleaned = lines
+      .map((l) => ({
+        product_id: Number(l.product_id),
+        quantity: Number(l.quantity),
+      }))
+      .filter((l) => l.product_id > 0 && l.quantity > 0);
+    if (cleaned.length === 0) {
+      setError("Add at least one product line with a quantity.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await createAdminOrder({
+        user_id: Number(userId),
+        status,
+        gift_wrap: giftWrap,
+        items: cleaned,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to create order");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+        style={{ maxWidth: 640 }}
+      >
+        <h3>New Order</h3>
+        <p className="form-note mb-16">
+          Place an order on behalf of a user (e.g. phone / WhatsApp orders).
+          Stock is decremented automatically.
+        </p>
+
+        <div className="auth-form">
+          <div>
+            <label className="field-label">Customer</label>
+            <select
+              className="select"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              required
+            >
+              <option value="">— Select a user —</option>
+              {users.map((u) => (
+                <option key={u.id ?? u.ID} value={u.id ?? u.ID}>
+                  {u.name} ({u.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="row gap-12">
+            <div style={{ flex: 1 }}>
+              <label className="field-label">Status</label>
+              <select
+                className="select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ flex: 1, display: "flex", alignItems: "end" }}>
+              <label
+                className="row gap-8"
+                style={{ padding: "10px 0", cursor: "pointer" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={giftWrap}
+                  onChange={(e) => setGiftWrap(e.target.checked)}
+                />
+                <span>🎀 Gift wrap (+৳50)</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="field-label">Items</label>
+            <div className="stack gap-8">
+              {lines.map((l, i) => (
+                <div key={i} className="row gap-8" style={{ alignItems: "center" }}>
+                  <select
+                    className="select"
+                    style={{ flex: 1 }}
+                    value={l.product_id}
+                    onChange={(e) => updateLine(i, { product_id: e.target.value })}
+                    required
+                  >
+                    <option value="">— Pick a product —</option>
+                    {productOpts.map((p) => (
+                      <option key={p.ID} value={p.ID}>
+                        {p.name} — ৳{Number(p.price).toLocaleString()} (stock {p.stock})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="input"
+                    type="number"
+                    min="1"
+                    style={{ width: 80 }}
+                    value={l.quantity}
+                    onChange={(e) => updateLine(i, { quantity: e.target.value })}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => removeLine(i)}
+                    disabled={lines.length === 1}
+                    title="Remove line"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm mt-8"
+              onClick={addLine}
+            >
+              + Add line
+            </button>
+          </div>
+
+          <div
+            className="row"
+            style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}
+          >
+            <span className="muted">Estimated total</span>
+            <span className="spacer" />
+            <strong>৳{computedTotal.toLocaleString()}</strong>
+            {giftWrap && <span className="muted"> (+৳50 wrap)</span>}
+          </div>
+
+          {error && <p className="form-error">{error}</p>}
+
+          <div className="row gap-8 mt-8">
+            <button type="button" onClick={onClose} className="btn btn-ghost">
+              Cancel
+            </button>
+            <span className="spacer" />
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? "Creating…" : "Create order"}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
@@ -1475,20 +1803,24 @@ function DashboardTab() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      getAnalytics(),
+      getAnalytics().catch(() => ({ data: {} })),
       getAnalyticsSummary(days).catch(() => ({ data: null })),
-      getTopCustomers(10).catch(() => ({ data: { items: [] } })),
-      getInventoryReport().catch(() => ({ data: { items: [] } })),
-      getTrafficReport(days).catch(() => ({ data: { series: [] } })),
-      getCategoryRevenue().catch(() => ({ data: { items: [] } })),
+      getTopCustomers(10).catch(() => ({ data: [] })),
+      getInventoryReport().catch(() => ({ data: { low_stock: [] } })),
+      getTrafficReport(days).catch(() => ({ data: { traffic: [] } })),
+      getCategoryRevenue().catch(() => ({ data: [] })),
     ])
       .then(([s, sum, tc, inv, tr, cat]) => {
-        setStats(s.data);
+        setStats(s.data || {});
         setSummary(sum.data);
-        setTopCustomers(tc.data?.items || []);
-        setInventory(inv.data?.items || []);
-        setTraffic(tr.data?.series || []);
-        setCategories(cat.data?.items || []);
+        // top-customers returns bare array
+        setTopCustomers(Array.isArray(tc.data) ? tc.data : tc.data?.items || []);
+        // inventory returns { low_stock: [...] }
+        setInventory(Array.isArray(inv.data) ? inv.data : inv.data?.low_stock || inv.data?.items || []);
+        // traffic returns { traffic: [...] }
+        setTraffic(Array.isArray(tr.data) ? tr.data : tr.data?.traffic || tr.data?.series || []);
+        // categories returns bare array
+        setCategories(Array.isArray(cat.data) ? cat.data : cat.data?.items || []);
         setLoading(false);
       })
       .catch((e) => {
@@ -1499,7 +1831,7 @@ function DashboardTab() {
 
   if (loading) return <div className="empty"><div className="emoji">📊</div><h3>Loading analytics…</h3></div>;
   if (error) return <div className="warning">{error}</div>;
-  if (!stats) return null;
+  if (!stats) return <div className="empty"><div className="emoji">📊</div><h3>No analytics yet</h3><p>Sales and traffic data will appear once you have orders.</p></div>;
 
   const tiles = [
     { label: "Total revenue", value: `৳${Number(stats.revenue || 0).toFixed(2)}`, emoji: "💰" },
@@ -1675,15 +2007,15 @@ function DashboardTab() {
           ) : (
             topCustomers.map((u, i) => (
               <div
-                key={u.id || u.email}
+                key={u.user_id || u.email}
                 className="row"
                 style={{ padding: "6px 0", borderBottom: "1px solid var(--leaf-100)" }}
               >
                 <span style={{ width: 24, color: "var(--leaf-700)", fontWeight: 700 }}>#{i + 1}</span>
                 <span style={{ flex: 1 }}>{u.name || u.email}</span>
-                <span className="muted">{u.orders} orders</span>
+                <span className="muted">{u.orders ?? u.order_count ?? 0} orders</span>
                 <span style={{ minWidth: 80, textAlign: "right", fontWeight: 600 }}>
-                  ৳{Number(u.spent || u.total_spent || 0).toFixed(0)}
+                  ৳{Number(u.spent || u.total_spent || u.total_spend || 0).toFixed(0)}
                 </span>
               </div>
             ))
@@ -1789,6 +2121,336 @@ function CouponsTab() {
         </button>
         {msg && <p style={{ color: msg.startsWith("✓") ? "var(--leaf-700)" : "var(--rose)" }}>{msg}</p>}
       </form>
+    </div>
+  );
+}
+
+// ============ Reviews Admin Tab ============
+function ReviewsAdmin() {
+  const toast = useToast();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [productId, setProductId] = useState("");
+  const [hint, setHint] = useState("");
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  const load = () => {
+    if (!productId) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    listProductReviews(productId)
+      .then((res) => {
+        const data = res.data || {};
+        setRows(data.reviews || []);
+        setHint(`${data.count || 0} reviews · avg ${Number(data.avg || 0).toFixed(2)}`);
+        setLoading(false);
+      })
+      .catch((err) => {
+        toast.err(err?.response?.data?.error || "Failed to load");
+        setLoading(false);
+      });
+  };
+
+  // Auto-pick the first product on mount so the tab isn't empty by default.
+  useEffect(() => {
+    if (autoFilled) return;
+    API.get("/products/?limit=1")
+      .then((res) => {
+        const first = (res.data?.items || [])[0] || (res.data?.products || [])[0];
+        const pid = first?.id ?? first?.ID;
+        if (pid) {
+          setProductId(String(pid));
+          setAutoFilled(true);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!autoFilled) return; // wait for autofill
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, autoFilled]);
+
+  const onDelete = async (id) => {
+    if (!window.confirm("Delete this review?")) return;
+    try {
+      await adminDeleteReview(id);
+      toast.ok("Deleted");
+      load();
+    } catch (e) {
+      toast.err(e?.response?.data?.error || "Failed");
+    }
+  };
+
+  return (
+    <div>
+      <div className="row mb-16" style={{ gap: 8, alignItems: "center" }}>
+        <input
+          className="input"
+          type="number"
+          placeholder="Product ID"
+          value={productId}
+          onChange={(e) => setProductId(e.target.value)}
+          style={{ width: 160 }}
+        />
+        <button className="btn btn-secondary" onClick={load} disabled={!productId}>
+          Load
+        </button>
+        {hint && <span className="muted">{hint}</span>}
+      </div>
+
+      {loading ? (
+        <div className="muted">Loading…</div>
+      ) : !productId ? (
+        <div className="muted">Enter a product ID to view its reviews.</div>
+      ) : rows.length === 0 ? (
+        <div className="muted">No reviews for this product.</div>
+      ) : (
+        <div className="table">
+          <div className="thead">
+            <div>User</div>
+            <div>Rating</div>
+            <div>Comment</div>
+            <div>Date</div>
+            <div></div>
+          </div>
+          {rows.map((r) => (
+            <div className="trow" key={r.id ?? r.ID}>
+              <div>{r.user_name || `#${r.user_id}`}</div>
+              <div>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
+              <div style={{ maxWidth: 340 }}>{r.comment || <span className="muted">—</span>}</div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                {new Date(r.created_at).toLocaleDateString()}
+              </div>
+              <div>
+                <button className="btn btn-sm btn-danger" onClick={() => onDelete(r.id ?? r.ID)}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ Categories Admin Tab ============
+function CategoriesAdmin() {
+  const toast = useToast();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", slug: "", parent: "", icon: "🌿", position: 0, active: true });
+
+  const load = () => {
+    setLoading(true);
+    listCategories()
+      .then((res) => {
+        setRows(res.data || []);
+        setLoading(false);
+      })
+      .catch((e) => {
+        toast.err(e?.response?.data?.error || "Failed to load");
+        setLoading(false);
+      });
+  };
+
+  useEffect(load, []);
+
+  const openNew = () => {
+    setEditing(null);
+    setForm({ name: "", slug: "", parent: "", icon: "🌿", position: rows.length, active: true });
+    setShowForm(true);
+  };
+
+  const openEdit = (c) => {
+    setEditing(c);
+    setForm({
+      name: c.name || "",
+      slug: c.slug || "",
+      parent: c.parent || "",
+      icon: c.icon || "🌿",
+      position: c.position || 0,
+      active: !!c.active,
+    });
+    setShowForm(true);
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        name: form.name,
+        slug: form.slug,
+        parent: form.parent,
+        icon: form.icon,
+        position: Number(form.position) || 0,
+        active: !!form.active,
+      };
+      if (editing) {
+        await adminUpdateCategory(editing.id ?? editing.ID, payload);
+        toast.ok("Category updated");
+      } else {
+        await adminCreateCategory(payload);
+        toast.ok("Category created");
+      }
+      setShowForm(false);
+      setEditing(null);
+      load();
+    } catch (err) {
+      toast.err(err?.response?.data?.error || err.message);
+    }
+  };
+
+  const onDelete = async (c) => {
+    if (!window.confirm(`Delete category "${c.name}"?`)) return;
+    try {
+      await adminDeleteCategory(c.id ?? c.ID);
+      toast.ok("Deleted");
+      load();
+    } catch (err) {
+      toast.err(err?.response?.data?.error || err.message);
+    }
+  };
+
+  return (
+    <div>
+      <div className="row mb-16">
+        <button className="btn btn-primary" onClick={openNew}>
+          + New category
+        </button>
+        <span className="spacer" />
+        <span className="muted" style={{ fontSize: 13 }}>
+          {rows.length} categor{rows.length === 1 ? "y" : "ies"}
+        </span>
+      </div>
+
+      {showForm && (
+        <form onSubmit={onSubmit} className="card card-pad-lg mb-16">
+          <h3 style={{ marginTop: 0 }}>{editing ? "Edit category" : "New category"}</h3>
+          <div className="row gap-8" style={{ flexWrap: "wrap" }}>
+            <input
+              className="input"
+              placeholder="Name *"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+              style={{ flex: 2, minWidth: 180 }}
+            />
+            <input
+              className="input"
+              placeholder="slug (auto if blank)"
+              value={form.slug}
+              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              style={{ flex: 1, minWidth: 140 }}
+            />
+            <input
+              className="input"
+              placeholder="parent slug (optional)"
+              value={form.parent}
+              onChange={(e) => setForm({ ...form, parent: e.target.value })}
+              style={{ flex: 1, minWidth: 160 }}
+            />
+            <input
+              className="input"
+              placeholder="🌿"
+              maxLength={4}
+              value={form.icon}
+              onChange={(e) => setForm({ ...form, icon: e.target.value })}
+              style={{ width: 80 }}
+            />
+            <input
+              className="input"
+              type="number"
+              min="0"
+              placeholder="pos"
+              value={form.position}
+              onChange={(e) => setForm({ ...form, position: e.target.value })}
+              style={{ width: 90 }}
+            />
+            <label className="row" style={{ gap: 6, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(e) => setForm({ ...form, active: e.target.checked })}
+              />
+              <span>Active</span>
+            </label>
+          </div>
+          <div className="row mt-8" style={{ gap: 8 }}>
+            <button type="submit" className="btn btn-primary">
+              {editing ? "Update" : "Create"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setShowForm(false);
+                setEditing(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="muted">Loading…</div>
+      ) : rows.length === 0 ? (
+        <div className="muted">No categories yet. Click "New category" to add one.</div>
+      ) : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Icon</th>
+                <th>Name</th>
+                <th>Slug</th>
+                <th>Parent</th>
+                <th>Pos</th>
+                <th>Active</th>
+                <th style={{ textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((c) => (
+                <tr key={c.id ?? c.ID}>
+                  <td style={{ fontSize: 22 }}>{c.icon || "📁"}</td>
+                  <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  <td><code>{c.slug}</code></td>
+                  <td>{c.parent || <span className="muted">—</span>}</td>
+                  <td>{c.position}</td>
+                  <td>
+                    {c.active ? (
+                      <span className="pill pill-active">Active</span>
+                    ) : (
+                      <span className="pill pill-cancel">Off</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}>
+                      Edit
+                    </button>
+                    <button className="btn btn-danger btn-sm" style={{ marginLeft: 6 }} onClick={() => onDelete(c)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

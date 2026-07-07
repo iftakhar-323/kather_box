@@ -69,3 +69,12 @@ func CreateCoupon(c *gin.Context) {
 	database.DB.Create(&coupon)
 	c.JSON(http.StatusCreated, coupon)
 }
+// ListCoupons returns every coupon. Admin-only convenience for the admin UI.
+func ListCoupons(c *gin.Context) {
+        var rows []models.Coupon
+        if err := database.DB.Order("id desc").Find(&rows).Error; err != nil {
+                c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
+        }
+        c.JSON(http.StatusOK, gin.H{"items": rows, "total": len(rows)})
+}

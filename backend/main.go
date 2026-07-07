@@ -57,6 +57,8 @@ func main() {
 		&models.ShippingRule{},
 		&models.TaxRule{},
 		&models.UserMembership{},
+		&models.Review{},
+		&models.Category{},
 	)
 
 	router := gin.Default()
@@ -97,6 +99,8 @@ func main() {
 	routes.CSVRoutes(router)
 	routes.BackupRoutes(router)
 	routes.AddressRoutes(router)
+	routes.ReviewRoutes(router)
+	routes.CategoryRoutes(router)
 
 	router.Run(":8081")
 }

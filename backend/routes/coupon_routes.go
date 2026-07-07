@@ -16,7 +16,8 @@ func CouponRoutes(router *gin.Engine) {
 	}
 
 	// admin create
-	admin := router.Group("/api/admin")
-	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
-	admin.POST("/coupons", controllers.CreateCoupon)
+        admin := router.Group("/api/admin")
+        admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
+        admin.POST("/coupons", controllers.CreateCoupon)
+        admin.GET("/coupons", controllers.ListCoupons)
 }

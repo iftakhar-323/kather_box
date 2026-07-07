@@ -141,3 +141,74 @@ func AdminCancelConsultation(c *gin.Context) {
 	})
 	c.JSON(http.StatusOK, gin.H{"message": "Consultation cancelled"})
 }
+
+// ============ Admin Dashboard Aggregator ============
+
+// GET /api/admin/analytics
+// Returns the aggregate stats the Admin DashboardTab renders:
+//   revenue, total_orders, total_users, total_products, total_reminders,
+//   top_products[], orders_by_status[]
+func GetAdminAnalytics(c *gin.Context) {
+	var revenue float64
+	database.DB.Model(&models.Order{}).
+		Where("status <> ?", "cancelled").
+		Select("COALESCE(SUM(total_price),0)").Row().Scan(&revenue)
+
+	var totalOrders int64
+	database.DB.Model(&models.Order{}).Count(&totalOrders)
+
+	var totalUsers int64
+	database.DB.Model(&models.User{}).Count(&totalUsers)
+
+	var totalProducts int64
+	database.DB.Model(&models.Product{}).Count(&totalProducts)
+
+	var totalReminders int64
+	database.DB.Model(&models.CareReminder{}).Where("completed = ?", false).Count(&totalReminders)
+
+	// Top-selling products (top 5)
+	type TopProduct struct {
+		ProductID uint    `json:"product_id"`
+		Name      string  `json:"name"`
+		Sold      int     `json:"sold"`
+		Revenue   float64 `json:"revenue"`
+	}
+	var topProducts []TopProduct
+	database.DB.Raw(`
+		SELECT p.id as product_id, p.name as name,
+		       COALESCE(SUM(oi.quantity),0) as sold,
+		       COALESCE(SUM(oi.price * oi.quantity),0) as revenue
+		FROM products p
+		LEFT JOIN order_items oi ON oi.product_id = p.id
+		LEFT JOIN orders o ON o.id = oi.order_id AND o.status <> 'cancelled'
+		GROUP BY p.id
+		HAVING sold > 0
+		ORDER BY sold DESC
+		LIMIT 5`).Scan(&topProducts)
+	if topProducts == nil {
+		topProducts = []TopProduct{}
+	}
+
+	// Orders grouped by status
+	type StatusCount struct {
+		Status string `json:"status"`
+		Count  int    `json:"count"`
+	}
+	var ordersByStatus []StatusCount
+	database.DB.Raw(`
+		SELECT COALESCE(status,'unknown') as status, COUNT(*) as count
+		FROM orders GROUP BY status ORDER BY count DESC`).Scan(&ordersByStatus)
+	if ordersByStatus == nil {
+		ordersByStatus = []StatusCount{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"revenue":          revenue,
+		"total_orders":     totalOrders,
+		"total_users":      totalUsers,
+		"total_products":   totalProducts,
+		"total_reminders":  totalReminders,
+		"top_products":     topProducts,
+		"orders_by_status": ordersByStatus,
+	})
+}

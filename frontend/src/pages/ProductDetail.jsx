@@ -5,6 +5,7 @@ import { addToCart } from "../api/cart";
 import { CompareStore, SaveForLaterStore, RecentStore } from "../utils/kb";
 import { useToast } from "../components/Toast";
 import { useTranslation } from "../i18n/I18nProvider";
+import ReviewsSection from "../components/ReviewsSection";
 
 function emojiFor(category) {
   if (category === "plant") return "🌿";
@@ -233,6 +234,7 @@ export default function ProductDetail({ productId, onBack }) {
           </div>
         </div>
       </div>
+      <ReviewsSection productId={product.ID} />
     </div>
   );
 }
